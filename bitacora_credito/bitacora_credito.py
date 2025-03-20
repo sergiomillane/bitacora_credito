@@ -194,7 +194,7 @@ if pagina == "Bitácora de Actividades":
         registro_seleccionado = st.selectbox("Seleccione el número de registro a editar:", registros_disponibles)
 
         # Lista de columnas editables
-        columnas_editables = ["TICKET", "CLIENTE", "FECHA", "VENTA", "MOTO", "LC_ACTUAL", "LC_FINAL", "ENGANCHE_REQUERIDO", 
+        columnas_editables = ["TICKET", "CLIENTE", "FECHA","SUC", "VENTA", "MOTO", "LC_ACTUAL", "LC_FINAL", "ENGANCHE_REQUERIDO", 
                               "ENGANCHE_RECIBIDO", "OBSERVACION", "ESPECIAL", "ARTICULO", "EJECUTIVO", "CEL_CTE", 
                               "CONSULTA_BURO", "Actualizacion", "FACTURO"]
 
