@@ -301,14 +301,45 @@ elif pagina == "Indicadores":
             })
         )
 
+
         # KPIs
         total_clientes = bitacora["CLIENTE"].nunique()
         clientes_con_compra = compras_validas["CLIENTE"].nunique()
         clientes_sin_compra = total_clientes - clientes_con_compra
 
-        st.metric("🧳️ Clientes registrados", total_clientes)
-        st.metric("✅ Clientes con compra", clientes_con_compra)
-        st.metric("❌ Clientes sin compra", clientes_sin_compra)
+        # Layout con columnas
+        col1, col2 = st.columns([1, 2])  # 1/3 para métricas, 2/3 para tabla
+
+        with col1:
+            st.metric("🧳️ Clientes registrados", total_clientes)
+            st.metric("✅ Clientes con compra", clientes_con_compra)
+            st.metric("❌ Clientes sin compra", clientes_sin_compra)
+
+        with col2:
+            st.subheader("📅 % de clientes sin compra por ejecutivo")
+
+            resumen_ejecutivo = (
+                sin_compra_df.groupby("EJECUTIVO")["CLIENTE"]
+                .nunique()
+                .reset_index()
+                .rename(columns={"CLIENTE": "Clientes sin compra"})
+            )
+
+            total_sin_compra = resumen_ejecutivo["Clientes sin compra"].sum()
+            resumen_ejecutivo["% del total"] = (
+                resumen_ejecutivo["Clientes sin compra"] / total_sin_compra * 100
+            ).round(2)
+
+            # Eliminar columna de número absoluto
+            resumen_ejecutivo = resumen_ejecutivo.drop(columns=["Clientes sin compra"])
+
+            # Formato condicional: de verde (mínimo) a rojo (máximo)
+            styled_df = resumen_ejecutivo.style.background_gradient(
+                subset=["% del total"],
+                cmap="RdYlGn_r"  # rojo (alto) -> verde (bajo)
+            )
+
+            st.dataframe(styled_df, use_container_width=True)
 
 
         # Tabla: clientes sin compra
@@ -318,25 +349,6 @@ elif pagina == "Indicadores":
         columnas_mostrar = ["CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "NOTAS", "OBSERVACION"]
         st.dataframe(sin_compra_df[columnas_mostrar].reset_index(drop=True))
 
-        # Agrupamiento por ejecutivo con porcentaje
-        st.subheader("📅 Distribución de clientes sin compra por ejecutivo")
-
-        resumen_ejecutivo = (
-            sin_compra_df.groupby("EJECUTIVO")["CLIENTE"]
-            .nunique()
-            .reset_index()
-            .rename(columns={"CLIENTE": "Clientes sin compra"})
-        )
-
-        total_sin_compra = resumen_ejecutivo["Clientes sin compra"].sum()
-        resumen_ejecutivo["% del total"] = (
-            resumen_ejecutivo["Clientes sin compra"] / total_sin_compra * 100
-        ).round(2)
-
-        # Eliminar columna de número absoluto
-        resumen_ejecutivo = resumen_ejecutivo.drop(columns=["Clientes sin compra"])
-
-        st.dataframe(resumen_ejecutivo)
 
 
     else:
