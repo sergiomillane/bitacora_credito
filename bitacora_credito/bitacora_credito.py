@@ -321,15 +321,23 @@ elif pagina == "Indicadores":
         columnas_mostrar = ["CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "NOTAS", "OBSERVACION"]
         st.dataframe(sin_compra_df[columnas_mostrar].reset_index(drop=True))
 
-        # Agrupamiento por ejecutivo
-        st.subheader("📅 Agrupación de clientes sin compra por ejecutivo")
-        resumen_ejecutivo = sin_compra_df.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index()
-        resumen_ejecutivo.columns = ["Ejecutivo", "Clientes sin compra"]
+        # Agrupamiento por ejecutivo con porcentaje
+        st.subheader("📅 Distribución de clientes sin compra por ejecutivo")
+
+        resumen_ejecutivo = (
+            sin_compra_df.groupby("EJECUTIVO")["CLIENTE"]
+            .nunique()
+            .reset_index()
+            .rename(columns={"CLIENTE": "Clientes sin compra"})
+        )
+
+        total_sin_compra = resumen_ejecutivo["Clientes sin compra"].sum()
+        resumen_ejecutivo["% del total"] = (
+            resumen_ejecutivo["Clientes sin compra"] / total_sin_compra * 100
+        ).round(2).astype(str) + '%'
+
         st.dataframe(resumen_ejecutivo)
 
-        # Tabla: clientes con compra
-        st.subheader("📋 Detalle de clientes con compra")
-        st.dataframe(resumen)
 
     else:
         st.warning("No se pudo cargar la información de Bitácora o RPVENTA.")
