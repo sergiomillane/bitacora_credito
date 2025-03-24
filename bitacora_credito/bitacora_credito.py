@@ -331,13 +331,15 @@ elif pagina == "Indicadores":
         col1, col2 = st.columns([1, 2])
 
         with col1:
+            st.metric("🧾 Total Facturas Recompra", total_recompra)
             st.metric("🧳️ Clientes registrados", total_clientes)
             st.metric("✅ Clientes con compra", clientes_con_compra)
             st.metric("❌ Clientes sin compra", clientes_sin_compra)
-            st.metric("🧾 Total Facturas Recompra", total_recompra)
-            st.metric("📌 % Bitácora sobre Recompra", f"{porcentaje_bitacora_recompra}%")
+            
+            
 
         with col2:
+            st.metric("📌 % Bitácora sobre Recompra", f"{porcentaje_bitacora_recompra}%")
             st.subheader("📅 % sin compra por ejecutivo")
             clientes_con_compra_set = set(compras_validas["CLIENTE"].unique())
             sin_compra_df = bitacora[~bitacora["CLIENTE"].isin(clientes_con_compra_set)].copy()
