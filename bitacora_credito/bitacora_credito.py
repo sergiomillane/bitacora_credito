@@ -343,7 +343,8 @@ elif pagina == "Indicadores":
             st.metric("❌ Clientes sin compra", clientes_sin_compra)
 
         with col2:
-            st.subheader("🗕 % sin compra por ejecutivo")
+            st.subheader("🗕 Distribución por ejecutivo (clientes sin compra)")
+
             clientes_con_compra_set = set(compras_validas["CLIENTE"].unique())
             sin_compra_df = bitacora[~bitacora["CLIENTE"].isin(clientes_con_compra_set)].copy()
 
@@ -359,13 +360,17 @@ elif pagina == "Indicadores":
                 resumen_ejecutivo["Clientes sin compra"] / total_sin_compra * 100
             ).round(2)
 
-            resumen_ejecutivo = resumen_ejecutivo[["EJECUTIVO", "% del total"]].sort_values(by="% del total", ascending=False)
+            resumen_ejecutivo = resumen_ejecutivo.sort_values(by="% del total", ascending=False)
 
-            styled_df = resumen_ejecutivo.style.background_gradient(
+            # Formatear el estilo con colores condicionales
+            styled_df = resumen_ejecutivo.style.format({
+                "% del total": "{:.2f}"
+            }).background_gradient(
                 subset=["% del total"], cmap="RdYlGn_r"
             )
 
             st.dataframe(styled_df, use_container_width=True)
+
 
         # Tabla de clientes sin compra
         st.subheader("📋 Clientes sin compra")
