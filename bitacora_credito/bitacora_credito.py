@@ -310,9 +310,6 @@ elif pagina == "Indicadores":
         st.metric("✅ Clientes con compra", clientes_con_compra)
         st.metric("❌ Clientes sin compra", clientes_sin_compra)
 
-        # Histograma de conversión
-        st.subheader("⏳ Días entre gestión y compra")
-        st.bar_chart(resumen["DIAS_PARA_COMPRA"].value_counts().sort_index())
 
         # Tabla: clientes sin compra
         st.subheader("📋 Clientes sin compra")
@@ -335,6 +332,9 @@ elif pagina == "Indicadores":
         resumen_ejecutivo["% del total"] = (
             resumen_ejecutivo["Clientes sin compra"] / total_sin_compra * 100
         ).round(2).astype(str) + '%'
+
+        # Eliminar columna de número absoluto
+        resumen_ejecutivo = resumen_ejecutivo.drop(columns=["Clientes sin compra"])
 
         st.dataframe(resumen_ejecutivo)
 
