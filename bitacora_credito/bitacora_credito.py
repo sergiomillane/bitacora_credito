@@ -244,15 +244,14 @@ if pagina == "Bitácora de Actividades":
     elif pagina == "Indicadores":
         st.header("📈 Indicadores de Conversión")
 
-        # Conexión a la base de datos
         conn = get_connection()
         if conn:
             try:
-                # Cargar Bitácora
+                # Cargar datos de Bitácora
                 query_bitacora = text("SELECT CLIENTE, FECHA FROM Bitacora_Credito WHERE CLIENTE IS NOT NULL")
                 bitacora = pd.read_sql(query_bitacora, conn)
 
-                # Cargar RPVENTA
+                # Cargar datos de RPVENTA
                 query_rpventa = text("SELECT CLIENTE, FECHA, FOLIO_POS, TOTALFACTURA FROM RPVENTA WHERE CLIENTE IS NOT NULL")
                 ventas = pd.read_sql(query_rpventa, conn)
 
@@ -263,46 +262,51 @@ if pagina == "Bitácora de Actividades":
                 ventas = pd.DataFrame()
 
         if not bitacora.empty and not ventas.empty:
-            # Convertir fechas
+            # Asegurarse de que las fechas estén en formato datetime
             bitacora["FECHA"] = pd.to_datetime(bitacora["FECHA"])
             ventas["FECHA"] = pd.to_datetime(ventas["FECHA"])
 
-            # Merge
+            # Hacer merge por cliente
             merged = pd.merge(bitacora, ventas, on="CLIENTE", how="left", suffixes=("_BIT", "_VENTA"))
 
-            # Calcular días entre gestión y compra
+            # Calcular los días entre gestión y compra
             merged["DIAS_PARA_COMPRA"] = (merged["FECHA_VENTA"] - merged["FECHA_BIT"]).dt.days
 
-            # Filtrar solo compras después (o el mismo día)
+            # Filtrar solo compras que ocurrieron el mismo día o después
             compras_validas = merged[merged["DIAS_PARA_COMPRA"] >= 0].copy()
 
-            # Agrupar por cliente + folio para evitar duplicados y contar productos
+            # Agrupar para evitar duplicados por FOLIO, contar productos y sumar montos
             resumen = (
-                compras_validas.groupby(["CLIENTE", "FOLIO_POS", "FECHA_VENTA"], as_index=False)
+                compras_validas
+                .groupby(["CLIENTE", "FOLIO_POS", "FECHA_VENTA"], as_index=False)
                 .agg({
                     "TOTALFACTURA": "sum",
                     "DIAS_PARA_COMPRA": "min",
-                    "CLIENTE": "count"  # Temporario para contar productos
+                    "FOLIO_POS": "count"
                 })
-                .rename(columns={"CLIENTE": "#Productos"})
+                .rename(columns={
+                    "TOTALFACTURA": "TOTAL_COMPRA",
+                    "FOLIO_POS": "#Productos",
+                    "FECHA_VENTA": "Fecha de Compra"
+                })
             )
 
-            # Mostrar KPI's
+            # Indicadores
             total_clientes = bitacora["CLIENTE"].nunique()
-            clientes_con_compra = resumen["CLIENTE"].nunique()
+            clientes_con_compra = compras_validas["CLIENTE"].nunique()
             clientes_sin_compra = total_clientes - clientes_con_compra
 
-            st.metric("Clientes registrados", total_clientes)
-            st.metric("Clientes con compra", clientes_con_compra)
-            st.metric("Clientes sin compra", clientes_sin_compra)
+            st.metric("🧾 Clientes registrados", total_clientes)
+            st.metric("✅ Clientes con compra", clientes_con_compra)
+            st.metric("❌ Clientes sin compra", clientes_sin_compra)
 
-            # Histograma
+            # Histograma: días entre gestión y compra
             st.subheader("⏳ Días entre gestión y compra")
             st.bar_chart(resumen["DIAS_PARA_COMPRA"].value_counts().sort_index())
 
-            # Tabla de detalle
+            # Mostrar tabla con detalles
             st.subheader("📋 Detalle de clientes con compra")
-            st.dataframe(resumen.rename(columns={"FECHA_VENTA": "Fecha de Compra"}))
+            st.dataframe(resumen)
 
         else:
             st.warning("No se pudo cargar la información de Bitácora o RPVENTA.")
