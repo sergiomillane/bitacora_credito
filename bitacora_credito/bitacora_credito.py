@@ -412,36 +412,36 @@ elif pagina == "Indicadores":
         # Tabla de clientes sin compra con filtros
         st.subheader("📋 Clientes sin compra")
 
-        # Filtros
-        st.markdown("### Filtros")
+        # Filtros en una misma fila
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            filtro_rango = st.selectbox("Filtrar por rango de fechas", ["Día específico", "Mes específico", "Año completo", "Histórico"])
+            filtro_rango = st.selectbox("Rango de fechas", ["Día específico", "Mes específico", "Año completo", "Histórico"])
 
         with col2:
-            filtro_ejecutivo = st.selectbox("Filtrar por Ejecutivo", ["Todos"] + sorted(sin_compra_df["EJECUTIVO"].dropna().unique()))
+            filtro_ejecutivo = st.selectbox("Ejecutivo", ["Todos"] + sorted(sin_compra_df["EJECUTIVO"].dropna().unique()))
 
-        # Rango de fechas
+        # Determinar valores predeterminados
+        anio_default = fecha_actual.year
+        mes_default = fecha_actual.month
         fecha_inicio, fecha_fin = None, None
-        if filtro_rango == "Día específico":
-            fecha = st.date_input("Selecciona el día", value=fecha_actual)
-            fecha_inicio = fecha_fin = fecha
-        elif filtro_rango == "Mes específico":
-            anio = st.selectbox("Selecciona el año", list(range(2022, fecha_actual.year + 1)), index=(fecha_actual.year - 2022))
-            mes = st.selectbox("Selecciona el mes", list(range(1, 13)), index=(fecha_actual.month - 1))
-            fecha_inicio = datetime(anio, mes, 1).date()
-            if mes == 12:
-                fecha_fin = datetime(anio + 1, 1, 1).date() - pd.Timedelta(days=1)
-            else:
-                fecha_fin = datetime(anio, mes + 1, 1).date() - pd.Timedelta(days=1)
-        elif filtro_rango == "Año completo":
-            anio = st.selectbox("Selecciona el año", list(range(2022, fecha_actual.year + 1)), index=(fecha_actual.year - 2022))
-            fecha_inicio = datetime(anio, 1, 1).date()
-            fecha_fin = datetime(anio, 12, 31).date()
-        elif filtro_rango == "Histórico":
-            fecha_inicio = datetime(2022, 1, 1).date()
-            fecha_fin = fecha_actual
+
+        with col3:
+            if filtro_rango == "Día específico":
+                fecha = st.date_input("Día", value=fecha_actual, key="fecha_dia")
+                fecha_inicio = fecha_fin = fecha
+            elif filtro_rango == "Mes específico":
+                anio = st.selectbox("Año", list(range(2022, anio_default + 1)), index=(anio_default - 2022), key="anio_mes")
+                mes = st.selectbox("Mes", list(range(1, 13)), index=(mes_default - 1), key="mes_mes")
+                fecha_inicio = datetime(anio, mes, 1).date()
+                fecha_fin = (datetime(anio + 1, 1, 1).date() - pd.Timedelta(days=1)) if mes == 12 else (datetime(anio, mes + 1, 1).date() - pd.Timedelta(days=1))
+            elif filtro_rango == "Año completo":
+                anio = st.selectbox("Año", list(range(2022, anio_default + 1)), index=(anio_default - 2022), key="anio_anual")
+                fecha_inicio = datetime(anio, 1, 1).date()
+                fecha_fin = datetime(anio, 12, 31).date()
+            elif filtro_rango == "Histórico":
+                fecha_inicio = datetime(2022, 1, 1).date()
+                fecha_fin = fecha_actual
 
         # Aplicar filtros al DataFrame
         filtro_df = sin_compra_df.copy()
@@ -456,6 +456,7 @@ elif pagina == "Indicadores":
         df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")
 
         st.dataframe(df_display.reset_index(drop=True))
+
 
 
 
