@@ -411,7 +411,7 @@ elif pagina == "Indicadores":
 
         # Tabla de clientes sin compra
         st.subheader("📋 Clientes sin compra")
-        columnas_mostrar = ["CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "NOTAS", "OBSERVACION"]
+        columnas_mostrar = ["FECHA","CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "NOTAS", "OBSERVACION"]
         st.dataframe(sin_compra_df[columnas_mostrar].reset_index(drop=True))
 
     else:
