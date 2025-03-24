@@ -335,11 +335,17 @@ elif pagina == "Indicadores":
             st.metric("🧳️ Clientes registrados", total_clientes)
             st.metric("✅ Clientes con compra", clientes_con_compra)
             st.metric("❌ Clientes sin compra", clientes_sin_compra)
-            
+            with st.container():
+                st.markdown("""
+                    <div style="border: 2px solid #ff4b4b; border-radius: 10px; padding: 15px; background-color: #fff3f3;">
+                        <h4 style="margin: 0; color: #ff4b4b;">📌 % Bitácora sobre Recompra</h4>
+                        <p style="font-size: 28px; font-weight: bold; margin: 0; color: #000;">{}</p>
+                    </div>
+                """.format(f"{porcentaje_bitacora_recompra}%"), unsafe_allow_html=True)
+
             
 
         with col2:
-            st.metric("📌 % Bitácora sobre Recompra", f"{porcentaje_bitacora_recompra}%")
             st.subheader("📅 % sin compra por ejecutivo")
             clientes_con_compra_set = set(compras_validas["CLIENTE"].unique())
             sin_compra_df = bitacora[~bitacora["CLIENTE"].isin(clientes_con_compra_set)].copy()
