@@ -270,7 +270,7 @@ elif pagina == "Indicadores":
             ventas = pd.DataFrame()
 
     if not bitacora.empty and not ventas.empty:
-        # Asegurar formato de fechas y tipos de cliente
+        # Asegurar formato de fechas y tipos
         bitacora["FECHA"] = pd.to_datetime(bitacora["FECHA"])
         ventas["FECHA_VENTA"] = pd.to_datetime(ventas["FECHA_VENTA"])
         bitacora["CLIENTE"] = bitacora["CLIENTE"].astype(str).str.strip()
@@ -278,11 +278,9 @@ elif pagina == "Indicadores":
 
         # Merge
         merged = pd.merge(bitacora, ventas, on="CLIENTE", how="left")
-
-        # Calcular diferencia de días
         merged["DIAS_PARA_COMPRA"] = (merged["FECHA_VENTA"] - merged["FECHA"]).dt.days
 
-        # Filtrar compras posteriores o el mismo día
+        # Clientes con compra
         compras_validas = merged[merged["DIAS_PARA_COMPRA"] >= 0].copy()
 
         # Resumen de compras
@@ -301,14 +299,17 @@ elif pagina == "Indicadores":
             })
         )
 
-
         # KPIs
         total_clientes = bitacora["CLIENTE"].nunique()
         clientes_con_compra = compras_validas["CLIENTE"].nunique()
         clientes_sin_compra = total_clientes - clientes_con_compra
 
-        # Layout con columnas
-        col1, col2 = st.columns([1, 2])  # 1/3 para métricas, 2/3 para tabla
+        # Clientes sin compra
+        clientes_con_compra_set = set(compras_validas["CLIENTE"].unique())
+        sin_compra_df = bitacora[~bitacora["CLIENTE"].isin(clientes_con_compra_set)].copy()
+
+        # Layout: métricas + resumen por ejecutivo
+        col1, col2 = st.columns([1, 2])
 
         with col1:
             st.metric("🧳️ Clientes registrados", total_clientes)
@@ -317,7 +318,6 @@ elif pagina == "Indicadores":
 
         with col2:
             st.subheader("📅 % de clientes sin compra por ejecutivo")
-
             resumen_ejecutivo = (
                 sin_compra_df.groupby("EJECUTIVO")["CLIENTE"]
                 .nunique()
@@ -330,26 +330,23 @@ elif pagina == "Indicadores":
                 resumen_ejecutivo["Clientes sin compra"] / total_sin_compra * 100
             ).round(2)
 
-            # Eliminar columna de número absoluto
-            resumen_ejecutivo = resumen_ejecutivo.drop(columns=["Clientes sin compra"])
+            # Quitar columna absoluta y ordenar por porcentaje
+            resumen_ejecutivo = resumen_ejecutivo[["EJECUTIVO", "% del total"]].sort_values(
+                by="% del total", ascending=False
+            )
 
-            # Formato condicional: de verde (mínimo) a rojo (máximo)
+            # Formato condicional
             styled_df = resumen_ejecutivo.style.background_gradient(
                 subset=["% del total"],
-                cmap="RdYlGn_r"  # rojo (alto) -> verde (bajo)
+                cmap="RdYlGn_r"  # Rojo alto → verde bajo
             )
 
             st.dataframe(styled_df, use_container_width=True)
 
-
-        # Tabla: clientes sin compra
+        # Tabla detallada de clientes sin compra
         st.subheader("📋 Clientes sin compra")
-        clientes_con_compra_set = set(compras_validas["CLIENTE"].unique())
-        sin_compra_df = bitacora[~bitacora["CLIENTE"].isin(clientes_con_compra_set)].copy()
         columnas_mostrar = ["CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "NOTAS", "OBSERVACION"]
         st.dataframe(sin_compra_df[columnas_mostrar].reset_index(drop=True))
-
-
 
     else:
         st.warning("No se pudo cargar la información de Bitácora o RPVENTA.")
