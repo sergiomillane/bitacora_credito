@@ -223,59 +223,59 @@ if pagina == "Bitácora de Actividades":
     else:
         st.warning("No hay registros para mostrar con los filtros seleccionados.")
 
- # ========== ✏️ EDITAR UN REGISTRO ==========
-    st.subheader("✏️ Editar un registro")
+    # ========== EDITAR Y ELIMINAR REGISTRO LADO A LADO ==========
+    col_editar, col_eliminar = st.columns(2)
 
-    if not df_records.empty:
-        registros_disponibles = df_records["#Registro"].tolist()
-        registro_seleccionado = st.selectbox("Seleccione el número de registro a editar:", registros_disponibles)
+    with col_editar:
+        st.subheader("✏️ Editar un registro")
+        if not df_records.empty:
+            registros_disponibles = df_records["#Registro"].tolist()
+            registro_editar = st.selectbox("Registro a editar:", registros_disponibles, key="editar")
 
-        # Lista de columnas editables
-        columnas_editables = ["TICKET", "CLIENTE", "FECHA","SUC", "VENTA", "MOTO", "LC_ACTUAL", "LC_FINAL", "ENGANCHE_REQUERIDO", 
-                              "ENGANCHE_RECIBIDO", "OBSERVACION", "ESPECIAL", "ARTICULO", "EJECUTIVO", "CEL_CTE", 
-                              "CONSULTA_BURO", "Actualizacion", "FACTURO"]
+            columnas_editables = ["TICKET", "CLIENTE", "FECHA", "SUC", "VENTA", "MOTO", "LC_ACTUAL", "LC_FINAL",
+                                "ENGANCHE_REQUERIDO", "ENGANCHE_RECIBIDO", "OBSERVACION", "ESPECIAL", "ARTICULO",
+                                "EJECUTIVO", "CEL_CTE", "CONSULTA_BURO", "Actualizacion", "FACTURO"]
 
-        campo_seleccionado = st.selectbox("Seleccione el campo a editar:", columnas_editables)
-        nuevo_valor = st.text_input(f"Ingrese el nuevo valor para {campo_seleccionado}:")
+            campo_seleccionado = st.selectbox("Campo a editar:", columnas_editables)
+            nuevo_valor = st.text_input(f"Nuevo valor para {campo_seleccionado}:")
 
-        if st.button("Actualizar Registro"):
-            conn = get_connection()
-            if conn:
-                try:
-                    update_query = text(f"UPDATE Bitacora_Credito SET {campo_seleccionado} = :nuevo_valor WHERE Registro = :registro")
-                    conn.execute(update_query, {"nuevo_valor": nuevo_valor, "registro": registro_seleccionado})
-                    conn.commit()
-                    st.success(f"Registro #{registro_seleccionado} actualizado exitosamente.")
-                except Exception as e:
-                    st.error(f"Error al actualizar el registro: {e}")
-                finally:
-                    conn.close()
-                st.rerun()  # Recargar la página para reflejar los cambios
+            if st.button("Actualizar Registro"):
+                conn = get_connection()
+                if conn:
+                    try:
+                        update_query = text(f"""
+                            UPDATE Bitacora_Credito
+                            SET {campo_seleccionado} = :nuevo_valor
+                            WHERE Registro = :registro
+                        """)
+                        conn.execute(update_query, {"nuevo_valor": nuevo_valor, "registro": registro_editar})
+                        conn.commit()
+                        st.success(f"Registro #{registro_editar} actualizado exitosamente.")
+                    except Exception as e:
+                        st.error(f"Error al actualizar el registro: {e}")
+                    finally:
+                        conn.close()
+                    st.rerun()
 
+    with col_eliminar:
+        st.subheader("❌ Eliminar un registro")
+        if not df_records.empty:
+            registros_disponibles = df_records["#Registro"].tolist()
+            registro_eliminar = st.selectbox("Registro a eliminar:", registros_disponibles, key="eliminar")
 
-
-    # ========== ELIMINACIÓN DE REGISTROS ==========
-    st.subheader("❌ Eliminar un registro")
-
-    # Obtener la lista de registros disponibles para eliminar
-    if not df_records.empty:
-        registros_disponibles = df_records["#Registro"].tolist()
-        registro_seleccionado = st.selectbox("Seleccione el número de registro a eliminar:", registros_disponibles)
-
-        if st.button("Eliminar Registro"):
-            conn = get_connection()
-            if conn:
-                try:
-                    delete_query = text("DELETE FROM Bitacora_Credito WHERE Registro = :registro")
-                    conn.execute(delete_query, {"registro": registro_seleccionado})
-                    conn.commit()
-                    st.success(f"Registro #{registro_seleccionado} eliminado exitosamente.")
-                except Exception as e:
-                    st.error(f"Error al eliminar el registro: {e}")
-                finally:
-                    conn.close()
-    # Recargar la página para actualizar los datos
-            st.rerun()
+            if st.button("Eliminar Registro"):
+                conn = get_connection()
+                if conn:
+                    try:
+                        delete_query = text("DELETE FROM Bitacora_Credito WHERE Registro = :registro")
+                        conn.execute(delete_query, {"registro": registro_eliminar})
+                        conn.commit()
+                        st.success(f"Registro #{registro_eliminar} eliminado exitosamente.")
+                    except Exception as e:
+                        st.error(f"Error al eliminar el registro: {e}")
+                    finally:
+                        conn.close()
+                st.rerun()
 
 
 elif pagina == "Indicadores":
