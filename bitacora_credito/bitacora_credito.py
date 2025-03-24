@@ -409,15 +409,54 @@ elif pagina == "Indicadores":
             st.dataframe(styled_df, use_container_width=True)
 
 
-        # Tabla de clientes sin compra
+        # Tabla de clientes sin compra con filtros
         st.subheader("📋 Clientes sin compra")
-        columnas_mostrar = ["FECHA", "CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "NOTAS", "OBSERVACION"]
 
-        # Crear una copia para evitar SettingWithCopyWarning
-        df_display = sin_compra_df[columnas_mostrar].copy()
-        df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")  # Formatear la fecha
+        # Filtros
+        st.markdown("### Filtros")
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            filtro_rango = st.selectbox("Filtrar por rango de fechas", ["Día específico", "Mes específico", "Año completo", "Histórico"])
+
+        with col2:
+            filtro_ejecutivo = st.selectbox("Filtrar por Ejecutivo", ["Todos"] + sorted(sin_compra_df["EJECUTIVO"].dropna().unique()))
+
+        # Rango de fechas
+        fecha_inicio, fecha_fin = None, None
+        if filtro_rango == "Día específico":
+            fecha = st.date_input("Selecciona el día", value=fecha_actual)
+            fecha_inicio = fecha_fin = fecha
+        elif filtro_rango == "Mes específico":
+            anio = st.selectbox("Selecciona el año", list(range(2022, fecha_actual.year + 1)), index=(fecha_actual.year - 2022))
+            mes = st.selectbox("Selecciona el mes", list(range(1, 13)), index=(fecha_actual.month - 1))
+            fecha_inicio = datetime(anio, mes, 1).date()
+            if mes == 12:
+                fecha_fin = datetime(anio + 1, 1, 1).date() - pd.Timedelta(days=1)
+            else:
+                fecha_fin = datetime(anio, mes + 1, 1).date() - pd.Timedelta(days=1)
+        elif filtro_rango == "Año completo":
+            anio = st.selectbox("Selecciona el año", list(range(2022, fecha_actual.year + 1)), index=(fecha_actual.year - 2022))
+            fecha_inicio = datetime(anio, 1, 1).date()
+            fecha_fin = datetime(anio, 12, 31).date()
+        elif filtro_rango == "Histórico":
+            fecha_inicio = datetime(2022, 1, 1).date()
+            fecha_fin = fecha_actual
+
+        # Aplicar filtros al DataFrame
+        filtro_df = sin_compra_df.copy()
+        filtro_df = filtro_df[(filtro_df["FECHA"] >= pd.to_datetime(fecha_inicio)) & (filtro_df["FECHA"] <= pd.to_datetime(fecha_fin))]
+
+        if filtro_ejecutivo != "Todos":
+            filtro_df = filtro_df[filtro_df["EJECUTIVO"] == filtro_ejecutivo]
+
+        # Mostrar tabla con formato de fecha
+        columnas_mostrar = ["FECHA", "CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "NOTAS", "OBSERVACION"]
+        df_display = filtro_df[columnas_mostrar].copy()
+        df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")
 
         st.dataframe(df_display.reset_index(drop=True))
+
 
 
     else:
