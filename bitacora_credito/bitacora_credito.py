@@ -246,7 +246,7 @@ elif pagina == "Indicadores":
 
     from dateutil.relativedelta import relativedelta
 
-    # Calcular automáticamente el primer y último día del mes actual
+    # Calcular el primer y último día del mes actual
     hoy = datetime.now()
     primer_dia_mes = hoy.replace(day=1).date()
     ultimo_dia_mes = (primer_dia_mes + relativedelta(months=1)) - pd.Timedelta(days=1)
@@ -270,7 +270,7 @@ elif pagina == "Indicadores":
             """)
             ventas = pd.read_sql(query_rpventa, conn)
 
-            # Seguimiento Activación - Facturas Recompra del mes actual
+            # Seguimiento Activación - Facturas Recompra del mes actual usando FECHA
             query_recompra = text("""
                 SELECT DISTINCT FOLIO_POS
                 FROM SeguimientoActivacion
@@ -279,13 +279,13 @@ elif pagina == "Indicadores":
             """)
             df_recompra = pd.read_sql(query_recompra, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})
 
-            # Bitácora del mes actual
+            # Bitácora del mes actual (clientes distintos)
             query_bitacora_mes = text("""
-                SELECT COUNT(*) as conteo
+                SELECT COUNT(DISTINCT CLIENTE) as conteo
                 FROM Bitacora_Credito
                 WHERE FECHA BETWEEN :inicio AND :fin
             """)
-            registros_mes = pd.read_sql(query_bitacora_mes, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})["conteo"][0]
+            clientes_registrados_mes = pd.read_sql(query_bitacora_mes, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})["conteo"][0]
 
             conn.close()
         except Exception as e:
@@ -293,7 +293,7 @@ elif pagina == "Indicadores":
             bitacora = pd.DataFrame()
             ventas = pd.DataFrame()
             df_recompra = pd.DataFrame()
-            registros_mes = 0
+            clientes_registrados_mes = 0
 
     if not bitacora.empty and not ventas.empty:
         bitacora["FECHA"] = pd.to_datetime(bitacora["FECHA"])
@@ -325,28 +325,26 @@ elif pagina == "Indicadores":
         clientes_sin_compra = total_clientes - clientes_con_compra
 
         total_recompra = df_recompra["FOLIO_POS"].nunique()
-        porcentaje_bitacora_recompra = round((registros_mes / total_recompra) * 100, 2) if total_recompra > 0 else 0
+        porcentaje_bitacora_recompra = round((clientes_registrados_mes / total_recompra) * 100, 2) if total_recompra > 0 else 0
 
         # Layout de KPIs y resumen por ejecutivo
         col1, col2 = st.columns([1, 2])
 
         with col1:
-            st.metric("🧾 Total Facturas Recompra", total_recompra)
-            st.metric("🧳️ Clientes registrados", total_clientes)
-            st.metric("✅ Clientes con compra", clientes_con_compra)
-            st.metric("❌ Clientes sin compra", clientes_sin_compra)
-            with st.container():
-                st.markdown("""
-                    <div style="border: 2px solid #ff4b4b; border-radius: 10px; padding: 15px; background-color: #fff3f3;">
-                        <h4 style="margin: 0; color: #ff4b4b;">📌 % Bitácora sobre Recompra</h4>
-                        <p style="font-size: 28px; font-weight: bold; margin: 0; color: #000;">{}</p>
-                    </div>
-                """.format(f"{porcentaje_bitacora_recompra}%"), unsafe_allow_html=True)
+            st.markdown("""
+                <div style="border: 2px solid #ff4b4b; border-radius: 10px; padding: 15px; background-color: #fff3f3;">
+                    <h4 style="margin: 0; color: #ff4b4b;">\ud83d\udccc % Clientes recompra procesados</h4>
+                    <p style="font-size: 28px; font-weight: bold; margin: 0; color: #000;">{}</p>
+                </div>
+            """.format(f"{porcentaje_bitacora_recompra}%"), unsafe_allow_html=True)
 
-            
+            st.metric("\ud83d\udccb Total Facturas Recompra", total_recompra)
+            st.metric("\ud83d\udcdb\ufe0f Clientes registrados", total_clientes)
+            st.metric("\u2705 Clientes con compra", clientes_con_compra)
+            st.metric("\u274c Clientes sin compra", clientes_sin_compra)
 
         with col2:
-            st.subheader("📅 % sin compra por ejecutivo")
+            st.subheader("\ud83d\uddd5\ufe0f % sin compra por ejecutivo")
             clientes_con_compra_set = set(compras_validas["CLIENTE"].unique())
             sin_compra_df = bitacora[~bitacora["CLIENTE"].isin(clientes_con_compra_set)].copy()
 
@@ -371,9 +369,10 @@ elif pagina == "Indicadores":
             st.dataframe(styled_df, use_container_width=True)
 
         # Tabla de detalle
-        st.subheader("📋 Clientes sin compra")
+        st.subheader("\ud83d\udccb Clientes sin compra")
         columnas_mostrar = ["CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "NOTAS", "OBSERVACION"]
         st.dataframe(sin_compra_df[columnas_mostrar].reset_index(drop=True))
 
     else:
         st.warning("No se pudo cargar la información de Bitácora o RPVENTA.")
+
