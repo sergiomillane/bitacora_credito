@@ -147,7 +147,6 @@ if pagina == "Bitácora de Actividades":
                 conn.close()
 
     # ========== VISUALIZADOR EN TIEMPO REAL ==========
-# ========== VISUALIZADOR EN TIEMPO REAL ==========
     st.header("📊 Registros en tiempo real")
 
     # Filtros
@@ -156,40 +155,57 @@ if pagina == "Bitácora de Actividades":
         filtro_cliente = st.text_input("Filtrar por ID Cliente", "")
 
     with col2:
-        filtro_rango = st.selectbox("Seleccionar periodo", ["Histórico", "Año completo", "Mes específico"])
-        filtro_año = st.selectbox("Selecciona año", [2025, 2024, 2023]) if filtro_rango != "Histórico" else None
-        filtro_mes = st.selectbox("Selecciona mes", ['January', 'February', 'March', 'April', 'May', 'June', 
-                                                    'July', 'August', 'September', 'October', 'November', 'December']) if filtro_rango == "Mes específico" else None
+        filtro_rango = st.selectbox("Rango de fechas", ["Día específico", "Histórico", "Año completo", "Mes específico"], index=0)
 
     with col3:
         filtro_ejecutivo = st.selectbox("Filtrar por Ejecutivo", ["Todos"] + ["Alejandra", "Alma", "Francisco", "Mario", "Paul", "Victor", "Yadira", "Zulema", "Martin"])
+
+    # Selección de fechas según el rango
+    fecha_inicio, fecha_fin = None, None
+
+    if filtro_rango == "Día específico":
+        fecha = st.date_input("Selecciona el día", value=fecha_actual)
+        fecha_inicio = fecha_fin = fecha
+
+    elif filtro_rango == "Mes específico":
+        anio = st.selectbox("Selecciona el año", list(range(2022, fecha_actual.year + 1)), index=(fecha_actual.year - 2022))
+        mes = st.selectbox("Selecciona el mes", list(range(1, 13)), index=(fecha_actual.month - 1))
+        fecha_inicio = datetime(anio, mes, 1).date()
+        if mes == 12:
+            fecha_fin = datetime(anio + 1, 1, 1).date() - pd.Timedelta(days=1)
+        else:
+            fecha_fin = datetime(anio, mes + 1, 1).date() - pd.Timedelta(days=1)
+
+    elif filtro_rango == "Año completo":
+        anio = st.selectbox("Selecciona el año", list(range(2022, fecha_actual.year + 1)), index=(fecha_actual.year - 2022))
+        fecha_inicio = datetime(anio, 1, 1).date()
+        fecha_fin = datetime(anio, 12, 31).date()
+
+    elif filtro_rango == "Histórico":
+        fecha_inicio = datetime(2022, 1, 1).date()
+        fecha_fin = fecha_actual
 
     # Función para obtener registros desde SQL Server
     def fetch_records():
         conn = get_connection()
         if conn:
             try:
-                base_query = "SELECT Registro AS '#Registro', * FROM Bitacora_Credito WHERE 1=1"
-                params = {}
+                query = text("""
+                    SELECT Registro AS '#Registro', * 
+                    FROM Bitacora_Credito 
+                    WHERE FECHA BETWEEN :inicio AND :fin
+                    {filtro_ejecutivo_sql}
+                    ORDER BY Registro ASC
+                """.format(
+                    filtro_ejecutivo_sql="AND EJECUTIVO = :ejecutivo" if filtro_ejecutivo != "Todos" else ""
+                ))
 
-                if filtro_rango == "Año completo":
-                    base_query += " AND YEAR(FECHA) = :año"
-                    params["año"] = filtro_año
-                elif filtro_rango == "Mes específico":
-                    base_query += " AND YEAR(FECHA) = :año AND MONTH(FECHA) = :mes"
-                    params["año"] = filtro_año
-                    params["mes"] = datetime.strptime(filtro_mes, "%B").month
-
+                params = {
+                    "inicio": fecha_inicio.strftime('%Y-%m-%d'),
+                    "fin": fecha_fin.strftime('%Y-%m-%d')
+                }
                 if filtro_ejecutivo != "Todos":
-                    base_query += " AND EJECUTIVO = :ejecutivo"
                     params["ejecutivo"] = filtro_ejecutivo
-
-                if filtro_cliente:
-                    base_query += " AND CLIENTE LIKE :cliente"
-                    params["cliente"] = f"%{filtro_cliente}%"
-
-                base_query += " ORDER BY Registro ASC"
-                query = text(base_query)
 
                 df = pd.read_sql(query, conn, params=params)
                 conn.close()
@@ -206,7 +222,6 @@ if pagina == "Bitácora de Actividades":
         st.dataframe(df_records)
     else:
         st.warning("No hay registros para mostrar con los filtros seleccionados.")
-
 
  # ========== ✏️ EDITAR UN REGISTRO ==========
     st.subheader("✏️ Editar un registro")
