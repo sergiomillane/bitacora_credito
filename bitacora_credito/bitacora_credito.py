@@ -331,7 +331,7 @@ elif pagina == "Indicadores":
         total_sin_compra = resumen_ejecutivo["Clientes sin compra"].sum()
         resumen_ejecutivo["% del total"] = (
             resumen_ejecutivo["Clientes sin compra"] / total_sin_compra * 100
-        ).round(2).astype(str) + '%'
+        ).round(2)
 
         # Eliminar columna de número absoluto
         resumen_ejecutivo = resumen_ejecutivo.drop(columns=["Clientes sin compra"])
