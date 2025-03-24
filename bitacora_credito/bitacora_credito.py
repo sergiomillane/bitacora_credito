@@ -147,14 +147,20 @@ if pagina == "Bitácora de Actividades":
                 conn.close()
 
     # ========== VISUALIZADOR EN TIEMPO REAL ==========
+# ========== VISUALIZADOR EN TIEMPO REAL ==========
     st.header("📊 Registros en tiempo real")
 
     # Filtros
     col1, col2, col3 = st.columns(3)
     with col1:
         filtro_cliente = st.text_input("Filtrar por ID Cliente", "")
+
     with col2:
-        filtro_fecha = st.date_input("Filtrar por fecha", fecha_actual)
+        filtro_rango = st.selectbox("Seleccionar periodo", ["Histórico", "Año completo", "Mes específico"])
+        filtro_año = st.selectbox("Selecciona año", [2025, 2024, 2023]) if filtro_rango != "Histórico" else None
+        filtro_mes = st.selectbox("Selecciona mes", ['January', 'February', 'March', 'April', 'May', 'June', 
+                                                    'July', 'August', 'September', 'October', 'November', 'December']) if filtro_rango == "Mes específico" else None
+
     with col3:
         filtro_ejecutivo = st.selectbox("Filtrar por Ejecutivo", ["Todos"] + ["Alejandra", "Alma", "Francisco", "Mario", "Paul", "Victor", "Yadira", "Zulema", "Martin"])
 
@@ -163,19 +169,34 @@ if pagina == "Bitácora de Actividades":
         conn = get_connection()
         if conn:
             try:
-                query = text("SELECT Registro AS '#Registro', * FROM Bitacora_Credito WHERE FECHA = :fecha ORDER BY Registro ASC")
-                params = {"fecha": filtro_fecha.strftime('%Y-%m-%d')}
+                base_query = "SELECT Registro AS '#Registro', * FROM Bitacora_Credito WHERE 1=1"
+                params = {}
+
+                if filtro_rango == "Año completo":
+                    base_query += " AND YEAR(FECHA) = :año"
+                    params["año"] = filtro_año
+                elif filtro_rango == "Mes específico":
+                    base_query += " AND YEAR(FECHA) = :año AND MONTH(FECHA) = :mes"
+                    params["año"] = filtro_año
+                    params["mes"] = datetime.strptime(filtro_mes, "%B").month
 
                 if filtro_ejecutivo != "Todos":
-                    query = text("SELECT Registro AS '#Registro', * FROM Bitacora_Credito WHERE FECHA = :fecha AND EJECUTIVO = :ejecutivo ORDER BY Registro ASC")
+                    base_query += " AND EJECUTIVO = :ejecutivo"
                     params["ejecutivo"] = filtro_ejecutivo
+
+                if filtro_cliente:
+                    base_query += " AND CLIENTE LIKE :cliente"
+                    params["cliente"] = f"%{filtro_cliente}%"
+
+                base_query += " ORDER BY Registro ASC"
+                query = text(base_query)
 
                 df = pd.read_sql(query, conn, params=params)
                 conn.close()
                 return df
             except Exception as e:
                 st.error(f"Error al obtener los registros: {e}")
-                return pd.DataFrame()  # Devuelve un DataFrame vacío en caso de error
+                return pd.DataFrame()
         return pd.DataFrame()
 
     # Mostrar registros en tiempo real
@@ -185,6 +206,7 @@ if pagina == "Bitácora de Actividades":
         st.dataframe(df_records)
     else:
         st.warning("No hay registros para mostrar con los filtros seleccionados.")
+
 
  # ========== ✏️ EDITAR UN REGISTRO ==========
     st.subheader("✏️ Editar un registro")
@@ -343,7 +365,7 @@ elif pagina == "Indicadores":
             st.metric("❌ Clientes sin compra", clientes_sin_compra)
 
         with col2:
-            st.subheader("🗕 Distribución por ejecutivo (clientes sin compra)")
+            st.subheader("Distribución por ejecutivo (clientes sin compra)")
 
             clientes_con_compra_set = set(compras_validas["CLIENTE"].unique())
             sin_compra_df = bitacora[~bitacora["CLIENTE"].isin(clientes_con_compra_set)].copy()
