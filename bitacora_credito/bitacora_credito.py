@@ -409,15 +409,15 @@ elif pagina == "Indicadores":
             st.dataframe(styled_df, use_container_width=True)
 
 
-            # Tabla de clientes sin compra
-            st.subheader("📋 Clientes sin compra")
-            columnas_mostrar = ["FECHA", "CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "NOTAS", "OBSERVACION"]
+        # Tabla de clientes sin compra
+        st.subheader("📋 Clientes sin compra")
+        columnas_mostrar = ["FECHA", "CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "NOTAS", "OBSERVACION"]
 
-            # Crear una copia para evitar SettingWithCopyWarning
-            df_display = sin_compra_df[columnas_mostrar].copy()
-            df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")  # Formatear la fecha
+        # Crear una copia para evitar SettingWithCopyWarning
+        df_display = sin_compra_df[columnas_mostrar].copy()
+        df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")  # Formatear la fecha
 
-            st.dataframe(df_display.reset_index(drop=True))
+        st.dataframe(df_display.reset_index(drop=True))
 
 
     else:
