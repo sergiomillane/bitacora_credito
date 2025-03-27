@@ -288,6 +288,11 @@ elif pagina == "Indicadores":
     primer_dia_mes = hoy.replace(day=1).date()
     ultimo_dia_mes = (primer_dia_mes + relativedelta(months=1)) - pd.Timedelta(days=1)
 
+    # Ajustar el inicio si es marzo 2025
+    if primer_dia_mes.year == 2025 and primer_dia_mes.month == 3:
+        primer_dia_mes = datetime(2025, 3, 19).date()
+
+
     conn = get_connection()
     if conn:
         try:
