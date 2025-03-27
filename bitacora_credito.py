@@ -443,8 +443,8 @@ elif pagina == "Indicadores":
             styled_df = resumen_ejecutivo.sort_values(by="% Sin compra", ascending=False).style.format({
                 "% Sin compra": "{:.2f}",
                 "Registros": "{:.0f}",
-                "Sin compra": "{:.0f}",
-                "No aut.": "{:.0f}"
+                "No aut.": "{:.0f}",
+                "Sin compra": "{:.0f}"
             }).background_gradient(
                 subset=["% Sin compra"], cmap="RdYlGn_r"
             )
