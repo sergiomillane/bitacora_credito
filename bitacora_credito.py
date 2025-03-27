@@ -435,8 +435,6 @@ elif pagina == "Indicadores":
             ).round(2)
 
 
-            resumen_ejecutivo = resumen_ejecutivo.sort_values(by="% del total", ascending=False)
-
             styled_df = resumen_ejecutivo.sort_values(by="% sin compra", ascending=False).style.format({
             "% sin compra": "{:.2f}",
             "Clientes registrados": "{:.0f}",
