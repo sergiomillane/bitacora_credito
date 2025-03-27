@@ -408,23 +408,44 @@ elif pagina == "Indicadores":
             clientes_con_compra_set = set(compras_validas["CLIENTE"].unique())
             sin_compra_df = bitacora[~bitacora["CLIENTE"].isin(clientes_con_compra_set)].copy()
 
-            resumen_ejecutivo = (
-                sin_compra_df.groupby("EJECUTIVO")["CLIENTE"]
-                .nunique()
-                .reset_index()
-                .rename(columns={"CLIENTE": "Clientes sin compra"})
+            # Agrupación base: todos los registros (clientes registrados)
+            total_registrados_por_ejecutivo = bitacora.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Clientes registrados"})
+
+            # Clientes sin compra
+            sin_compra_por_ejecutivo = sin_compra_df.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Clientes sin compra"})
+
+            # Clientes con VENTA NO AUTORIZADA (de todos los registrados)
+            no_autorizada = bitacora[bitacora["VENTA"] == "NO AUTORIZADA"]
+            no_autorizada_por_ejecutivo = no_autorizada.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "No Autorizadas"})
+
+            # Unir todas las métricas
+            resumen_ejecutivo = total_registrados_por_ejecutivo.merge(
+                sin_compra_por_ejecutivo, on="EJECUTIVO", how="left"
+            ).merge(
+                no_autorizada_por_ejecutivo, on="EJECUTIVO", how="left"
             )
 
+            # Rellenar nulos con 0
+            resumen_ejecutivo.fillna(0, inplace=True)
+
+            # Calcular %
             total_sin_compra = resumen_ejecutivo["Clientes sin compra"].sum()
-            resumen_ejecutivo["% del total"] = (
+            resumen_ejecutivo["% sin compra"] = (
                 resumen_ejecutivo["Clientes sin compra"] / total_sin_compra * 100
             ).round(2)
 
+
             resumen_ejecutivo = resumen_ejecutivo.sort_values(by="% del total", ascending=False)
 
-            styled_df = resumen_ejecutivo.style.format({"% del total": "{:.2f}"}).background_gradient(
-                subset=["% del total"], cmap="RdYlGn_r"
-            )
+            styled_df = resumen_ejecutivo.sort_values(by="% sin compra", ascending=False).style.format({
+            "% sin compra": "{:.2f}",
+            "Clientes registrados": "{:.0f}",
+            "Clientes sin compra": "{:.0f}",
+            "No Autorizadas": "{:.0f}"
+        }).background_gradient(
+            subset=["% sin compra"], cmap="RdYlGn_r"
+)
+
 
             st.dataframe(styled_df, use_container_width=True)
 
