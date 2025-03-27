@@ -101,50 +101,55 @@ if pagina == "Bitácora de Actividades":
 
     # ========== GUARDAR REGISTRO ==========
     if submit_button:
-        conn = get_connection()
-        if conn:
-            try:
-                query = text("""
-                    INSERT INTO Bitacora_Credito (
-                        FECHA, TICKET, SUC, CLIENTE, VENTA, MOTO, 
-                        TIPO_DE_CLIENTE, NOTAS, LC_ACTUAL, LC_FINAL, 
-                        ENGANCHE_REQUERIDO, ENGANCHE_RECIBIDO, OBSERVACION, ESPECIAL,
-                        ARTICULO, EJECUTIVO, CEL_CTE, CONSULTA_BURO, Actualizacion, FACTURO
-                    ) 
-                    VALUES (:fecha, :ticket, :sucursal, :cliente, :venta, :moto, 
-                            :tipo_cliente, :notas, :lc_actual, :lc_final, 
-                            :enganche_requerido, :enganche_recibido, :observacion, :especial,
-                            :articulo, :ejecutivo, :cel_cte, :consulta_buro, :actualizacion, :facturo)
-                """)
+        ejecutivos_validos = ["Francis", "Alejandra", "Alma", "Francisco", "Mario", "Paul", "Victor", "Yadira", "Zulema", "Martin"]
 
-                conn.execute(query, {
-                    "fecha": fecha.strftime('%Y-%m-%d'),
-                    "ticket": ticket,
-                    "sucursal": sucursal,
-                    "cliente": cliente,
-                    "venta": venta,
-                    "moto": moto,
-                    "tipo_cliente": tipo_cliente,
-                    "notas": notas,
-                    "lc_actual": lc_actual,
-                    "lc_final": lc_final,
-                    "enganche_requerido": enganche_requerido,
-                    "enganche_recibido": enganche_recibido,
-                    "observacion": observacion,
-                    "especial": especial,
-                    "articulo": articulo,
-                    "ejecutivo": ejecutivo,
-                    "cel_cte": cel_cte,
-                    "consulta_buro": consulta_buro,
-                    "actualizacion":actualizacion,
-                    "facturo": facturo 
-                })
-                conn.commit()
-                st.success("Registro guardado exitosamente en la base de datos.")
-            except Exception as e:
-                st.error(f"Error al guardar el registro: {e}")
-            finally:
-                conn.close()
+        if ejecutivo not in ejecutivos_validos:
+            st.error("⚠️ El ejecutivo seleccionado no es válido. Por favor selecciona uno de la lista.")
+        else:
+            conn = get_connection()
+            if conn:
+                try:
+                    query = text("""
+                        INSERT INTO Bitacora_Credito (
+                            FECHA, TICKET, SUC, CLIENTE, VENTA, MOTO, 
+                            TIPO_DE_CLIENTE, NOTAS, LC_ACTUAL, LC_FINAL, 
+                            ENGANCHE_REQUERIDO, ENGANCHE_RECIBIDO, OBSERVACION, ESPECIAL,
+                            ARTICULO, EJECUTIVO, CEL_CTE, CONSULTA_BURO, Actualizacion, FACTURO
+                        ) 
+                        VALUES (:fecha, :ticket, :sucursal, :cliente, :venta, :moto, 
+                                :tipo_cliente, :notas, :lc_actual, :lc_final, 
+                                :enganche_requerido, :enganche_recibido, :observacion, :especial,
+                                :articulo, :ejecutivo, :cel_cte, :consulta_buro, :actualizacion, :facturo)
+                    """)
+                    conn.execute(query, {
+                        "fecha": fecha.strftime('%Y-%m-%d'),
+                        "ticket": ticket,
+                        "sucursal": sucursal,
+                        "cliente": cliente,
+                        "venta": venta,
+                        "moto": moto,
+                        "tipo_cliente": tipo_cliente,
+                        "notas": notas,
+                        "lc_actual": lc_actual,
+                        "lc_final": lc_final,
+                        "enganche_requerido": enganche_requerido,
+                        "enganche_recibido": enganche_recibido,
+                        "observacion": observacion,
+                        "especial": especial,
+                        "articulo": articulo,
+                        "ejecutivo": ejecutivo,
+                        "cel_cte": cel_cte,
+                        "consulta_buro": consulta_buro,
+                        "actualizacion": actualizacion,
+                        "facturo": facturo
+                    })
+                    conn.commit()
+                    st.success("✅ Registro guardado exitosamente en la base de datos.")
+                except Exception as e:
+                    st.error(f"❌ Error al guardar el registro: {e}")
+                finally:
+                    conn.close()
+
 
     # ========== VISUALIZADOR EN TIEMPO REAL ==========
     st.header("📊 Registros en tiempo real")
