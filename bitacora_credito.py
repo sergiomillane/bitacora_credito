@@ -324,6 +324,13 @@ elif pagina == "Indicadores":
             """)
             clientes_registrados_mes = pd.read_sql(query_bitacora_mes, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})["conteo"][0]
 
+            # Prueba_Cliente
+            query_valor_cte = text("""
+                SELECT ID_CLIENTE, VALOR_CTE
+                FROM Prueba_Cliente
+            """)
+            valor_cte_df = pd.read_sql(query_valor_cte, conn)
+
             conn.close()
         except Exception as e:
             st.error(f"Error al obtener los datos: {e}")
@@ -331,6 +338,7 @@ elif pagina == "Indicadores":
             ventas = pd.DataFrame()
             df_recompra = pd.DataFrame()
             clientes_registrados_mes = 0
+            valor_cte_df = pd.DataFrame()
 
     if not bitacora.empty and not ventas.empty:
         bitacora["FECHA"] = pd.to_datetime(bitacora["FECHA"])
@@ -399,20 +407,21 @@ elif pagina == "Indicadores":
 
             resumen_ejecutivo = resumen_ejecutivo.sort_values(by="% del total", ascending=False)
 
-            # Formatear el estilo con colores condicionales
-            styled_df = resumen_ejecutivo.style.format({
-                "% del total": "{:.2f}"
-            }).background_gradient(
+            styled_df = resumen_ejecutivo.style.format({"% del total": "{:.2f}"}).background_gradient(
                 subset=["% del total"], cmap="RdYlGn_r"
             )
 
             st.dataframe(styled_df, use_container_width=True)
 
+        # Agregar VALOR_CTE a sin_compra_df
+        valor_cte_df["ID_CLIENTE"] = valor_cte_df["ID_CLIENTE"].astype(str).str.strip()
+        sin_compra_df["CLIENTE"] = sin_compra_df["CLIENTE"].astype(str).str.strip()
+        sin_compra_df = sin_compra_df.merge(valor_cte_df, left_on="CLIENTE", right_on="ID_CLIENTE", how="left")
+        sin_compra_df.drop(columns=["ID_CLIENTE"], inplace=True)
 
         # Tabla de clientes sin compra con filtros
         st.subheader("📋 Clientes sin compra")
 
-        # Filtros en una misma fila
         col1, col2, col3 = st.columns(3)
 
         with col1:
@@ -421,7 +430,6 @@ elif pagina == "Indicadores":
         with col2:
             filtro_ejecutivo = st.selectbox("Ejecutivo", ["Todos"] + sorted(sin_compra_df["EJECUTIVO"].dropna().unique()))
 
-        # Determinar valores predeterminados
         anio_default = fecha_actual.year
         mes_default = fecha_actual.month
         fecha_inicio, fecha_fin = None, None
@@ -457,5 +465,4 @@ elif pagina == "Indicadores":
 
     else:
         st.warning("No se pudo cargar la información de Bitácora o RPVENTA.")
-
 
