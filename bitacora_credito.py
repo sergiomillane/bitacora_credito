@@ -386,6 +386,16 @@ elif pagina == "Indicadores":
             st.metric("📎 Clientes registrados", total_clientes)
             st.metric("✅ Clientes con compra", clientes_con_compra)
             st.metric("❌ Clientes sin compra", clientes_sin_compra)
+            # === KPI: % Clientes sin compra respecto al total registrados ===
+            porcentaje_sin_compra = round((clientes_sin_compra / total_clientes) * 100, 2) if total_clientes > 0 else 0
+
+            st.markdown(f"""
+                <div style="border: 2px solid #2b7bba; border-radius: 10px; padding: 15px; background-color: #e6f2ff; margin-top: 15px;">
+                    <h4 style="margin: 0; color: #2b7bba;">🚫 % Clientes sin compra</h4>
+                    <p style="font-size: 28px; font-weight: bold; margin: 0; color: #000;">{porcentaje_sin_compra}%</p>
+                </div>
+            """, unsafe_allow_html=True)
+
 
         with col2:
             st.subheader("Distribución por ejecutivo (clientes sin compra)")
