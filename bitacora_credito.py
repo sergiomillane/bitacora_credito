@@ -425,9 +425,9 @@ elif pagina == "Indicadores":
 
             # Unir todas las métricas
             resumen_ejecutivo = total_registrados_por_ejecutivo.merge(
-                sin_compra_por_ejecutivo, on="EJECUTIVO", how="left"
-            ).merge(
                 no_autorizada_por_ejecutivo, on="EJECUTIVO", how="left"
+            ).merge(
+                sin_compra_por_ejecutivo, on="EJECUTIVO", how="left"
             )
 
             # Rellenar nulos con 0
@@ -438,6 +438,9 @@ elif pagina == "Indicadores":
             resumen_ejecutivo["% Sin compra"] = (
                 resumen_ejecutivo["Sin compra"] / total_sin_compra * 100
             ).round(2)
+
+            # Reordenar columnas
+            resumen_ejecutivo = resumen_ejecutivo[["EJECUTIVO", "Registros", "No aut.", "Sin compra", "% Sin compra"]]
 
             # Tabla estilizada
             styled_df = resumen_ejecutivo.sort_values(by="% Sin compra", ascending=False).style.format({
@@ -450,6 +453,7 @@ elif pagina == "Indicadores":
             )
 
             st.dataframe(styled_df, use_container_width=True)
+
 
 
         # Agregar VALOR_CTE a sin_compra_df
