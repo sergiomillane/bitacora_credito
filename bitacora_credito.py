@@ -409,14 +409,14 @@ elif pagina == "Indicadores":
             sin_compra_df = bitacora[~bitacora["CLIENTE"].isin(clientes_con_compra_set)].copy()
 
             # Agrupación base: todos los registros (clientes registrados)
-            total_registrados_por_ejecutivo = bitacora.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Clientes registrados"})
+            total_registrados_por_ejecutivo = bitacora.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Registros"})
 
             # Clientes sin compra
-            sin_compra_por_ejecutivo = sin_compra_df.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Clientes sin compra"})
+            sin_compra_por_ejecutivo = sin_compra_df.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Sin compra"})
 
             # Clientes con VENTA NO AUTORIZADA (de todos los registrados)
             no_autorizada = bitacora[bitacora["VENTA"] == "NO AUTORIZADA"]
-            no_autorizada_por_ejecutivo = no_autorizada.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "No Autorizadas"})
+            no_autorizada_por_ejecutivo = no_autorizada.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "No aut."})
 
             # Unir todas las métricas
             resumen_ejecutivo = total_registrados_por_ejecutivo.merge(
@@ -429,23 +429,23 @@ elif pagina == "Indicadores":
             resumen_ejecutivo.fillna(0, inplace=True)
 
             # Calcular %
-            total_sin_compra = resumen_ejecutivo["Clientes sin compra"].sum()
-            resumen_ejecutivo["% sin compra"] = (
-                resumen_ejecutivo["Clientes sin compra"] / total_sin_compra * 100
+            total_sin_compra = resumen_ejecutivo["Sin compra"].sum()
+            resumen_ejecutivo["% Sin compra"] = (
+                resumen_ejecutivo["Sin compra"] / total_sin_compra * 100
             ).round(2)
 
-
-            styled_df = resumen_ejecutivo.sort_values(by="% sin compra", ascending=False).style.format({
-            "% sin compra": "{:.2f}",
-            "Clientes registrados": "{:.0f}",
-            "Clientes sin compra": "{:.0f}",
-            "No Autorizadas": "{:.0f}"
-        }).background_gradient(
-            subset=["% sin compra"], cmap="RdYlGn_r"
-)
-
+            # Tabla estilizada
+            styled_df = resumen_ejecutivo.sort_values(by="% Sin compra", ascending=False).style.format({
+                "% Sin compra": "{:.2f}",
+                "Registros": "{:.0f}",
+                "Sin compra": "{:.0f}",
+                "No aut.": "{:.0f}"
+            }).background_gradient(
+                subset=["% Sin compra"], cmap="RdYlGn_r"
+            )
 
             st.dataframe(styled_df, use_container_width=True)
+
 
         # Agregar VALOR_CTE a sin_compra_df
         valor_cte_df["ID_CLIENTE"] = valor_cte_df["ID_CLIENTE"].astype(str).str.strip()
