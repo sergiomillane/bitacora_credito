@@ -324,6 +324,7 @@ elif pagina == "Indicadores":
             """)
             clientes_registrados_mes = pd.read_sql(query_bitacora_mes, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})["conteo"][0]
 
+<<<<<<< HEAD
             # Prueba_Cliente
             query_valor_cte = text("""
                 SELECT ID_CLIENTE, VALOR_CTE
@@ -331,6 +332,8 @@ elif pagina == "Indicadores":
             """)
             valor_cte_df = pd.read_sql(query_valor_cte, conn)
 
+=======
+>>>>>>> 00617df (prueba)
             conn.close()
         except Exception as e:
             st.error(f"Error al obtener los datos: {e}")
@@ -338,7 +341,10 @@ elif pagina == "Indicadores":
             ventas = pd.DataFrame()
             df_recompra = pd.DataFrame()
             clientes_registrados_mes = 0
+<<<<<<< HEAD
             valor_cte_df = pd.DataFrame()
+=======
+>>>>>>> 00617df (prueba)
 
     if not bitacora.empty and not ventas.empty:
         bitacora["FECHA"] = pd.to_datetime(bitacora["FECHA"])
@@ -407,21 +413,35 @@ elif pagina == "Indicadores":
 
             resumen_ejecutivo = resumen_ejecutivo.sort_values(by="% del total", ascending=False)
 
+<<<<<<< HEAD
             styled_df = resumen_ejecutivo.style.format({"% del total": "{:.2f}"}).background_gradient(
+=======
+            # Formatear el estilo con colores condicionales
+            styled_df = resumen_ejecutivo.style.format({
+                "% del total": "{:.2f}"
+            }).background_gradient(
+>>>>>>> 00617df (prueba)
                 subset=["% del total"], cmap="RdYlGn_r"
             )
 
             st.dataframe(styled_df, use_container_width=True)
 
+<<<<<<< HEAD
         # Agregar VALOR_CTE a sin_compra_df
         valor_cte_df["ID_CLIENTE"] = valor_cte_df["ID_CLIENTE"].astype(str).str.strip()
         sin_compra_df["CLIENTE"] = sin_compra_df["CLIENTE"].astype(str).str.strip()
         sin_compra_df = sin_compra_df.merge(valor_cte_df, left_on="CLIENTE", right_on="ID_CLIENTE", how="left")
         sin_compra_df.drop(columns=["ID_CLIENTE"], inplace=True)
+=======
+>>>>>>> 00617df (prueba)
 
         # Tabla de clientes sin compra con filtros
         st.subheader("📋 Clientes sin compra")
 
+<<<<<<< HEAD
+=======
+        # Filtros en una misma fila
+>>>>>>> 00617df (prueba)
         col1, col2, col3 = st.columns(3)
 
         with col1:
@@ -430,6 +450,10 @@ elif pagina == "Indicadores":
         with col2:
             filtro_ejecutivo = st.selectbox("Ejecutivo", ["Todos"] + sorted(sin_compra_df["EJECUTIVO"].dropna().unique()))
 
+<<<<<<< HEAD
+=======
+        # Determinar valores predeterminados
+>>>>>>> 00617df (prueba)
         anio_default = fecha_actual.year
         mes_default = fecha_actual.month
         fecha_inicio, fecha_fin = None, None
@@ -451,19 +475,37 @@ elif pagina == "Indicadores":
                 fecha_inicio = datetime(2022, 1, 1).date()
                 fecha_fin = fecha_actual
 
+<<<<<<< HEAD
+=======
+        # Aplicar filtros al DataFrame
+>>>>>>> 00617df (prueba)
         filtro_df = sin_compra_df.copy()
         filtro_df = filtro_df[(filtro_df["FECHA"] >= pd.to_datetime(fecha_inicio)) & (filtro_df["FECHA"] <= pd.to_datetime(fecha_fin))]
 
         if filtro_ejecutivo != "Todos":
             filtro_df = filtro_df[filtro_df["EJECUTIVO"] == filtro_ejecutivo]
 
+<<<<<<< HEAD
         columnas_mostrar = ["FECHA", "CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "VALOR_CTE", "NOTAS", "OBSERVACION"]
+=======
+        # Mostrar tabla con formato de fecha
+        columnas_mostrar = ["FECHA", "CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "NOTAS", "OBSERVACION"]
+>>>>>>> 00617df (prueba)
         df_display = filtro_df[columnas_mostrar].copy()
         df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")
 
         st.dataframe(df_display.reset_index(drop=True))
 
+<<<<<<< HEAD
     else:
         st.warning("No se pudo cargar la información de Bitácora o RPVENTA.")
 
 
+=======
+
+
+
+    else:
+        st.warning("No se pudo cargar la información de Bitácora o RPVENTA.")
+
+>>>>>>> 00617df (prueba)
