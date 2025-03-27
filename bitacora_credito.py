@@ -419,6 +419,10 @@ elif pagina == "Indicadores":
         sin_compra_df = sin_compra_df.merge(valor_cte_df, left_on="CLIENTE", right_on="ID_CLIENTE", how="left")
         sin_compra_df.drop(columns=["ID_CLIENTE"], inplace=True)
 
+        # ✅ Reemplazar nulos por "Nuevo"
+        sin_compra_df["VALOR_CTE"] = sin_compra_df["VALOR_CTE"].fillna("Nuevo")
+
+
         # Tabla de clientes sin compra con filtros
         st.subheader("📋 Clientes sin compra")
 
@@ -465,5 +469,3 @@ elif pagina == "Indicadores":
 
     else:
         st.warning("No se pudo cargar la información de Bitácora o RPVENTA.")
-
-###
