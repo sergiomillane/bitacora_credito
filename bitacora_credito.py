@@ -478,49 +478,58 @@ elif pagina == "Indicadores":
 
 
 
-        # Tabla de clientes sin compra con filtros
-        st.subheader("📋 Clientes sin compra")
+    # Tabla de clientes sin compra con filtros
+    st.subheader("📋 Clientes sin compra")
 
-        col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
 
-        with col1:
-            filtro_rango = st.selectbox("Rango de fechas", ["Día específico", "Mes específico", "Año completo", "Histórico"])
+    with col1:
+        filtro_rango = st.selectbox("Rango de fechas", ["Día específico", "Mes específico", "Año completo", "Histórico"])
 
-        with col2:
-            filtro_ejecutivo = st.selectbox("Ejecutivo", ["Todos"] + sorted(sin_compra_df["EJECUTIVO"].dropna().unique()))
+    with col2:
+        filtro_ejecutivo = st.selectbox("Ejecutivo", ["Todos"] + sorted(sin_compra_df["EJECUTIVO"].dropna().unique()))
 
+    with col3:
         anio_default = fecha_actual.year
         mes_default = fecha_actual.month
         fecha_inicio, fecha_fin = None, None
 
-        with col3:
-            if filtro_rango == "Día específico":
-                fecha = st.date_input("Día", value=fecha_actual, key="fecha_dia")
-                fecha_inicio = fecha_fin = fecha
-            elif filtro_rango == "Mes específico":
-                anio = st.selectbox("Año", list(range(2022, anio_default + 1)), index=(anio_default - 2022), key="anio_mes")
-                mes = st.selectbox("Mes", list(range(1, 13)), index=(mes_default - 1), key="mes_mes")
-                fecha_inicio = datetime(anio, mes, 1).date()
-                fecha_fin = (datetime(anio + 1, 1, 1).date() - pd.Timedelta(days=1)) if mes == 12 else (datetime(anio, mes + 1, 1).date() - pd.Timedelta(days=1))
-            elif filtro_rango == "Año completo":
-                anio = st.selectbox("Año", list(range(2022, anio_default + 1)), index=(anio_default - 2022), key="anio_anual")
-                fecha_inicio = datetime(anio, 1, 1).date()
-                fecha_fin = datetime(anio, 12, 31).date()
-            elif filtro_rango == "Histórico":
-                fecha_inicio = datetime(2022, 1, 1).date()
-                fecha_fin = fecha_actual
+        if filtro_rango == "Día específico":
+            fecha = st.date_input("Día", value=fecha_actual, key="fecha_dia")
+            fecha_inicio = fecha_fin = fecha
+        elif filtro_rango == "Mes específico":
+            anio = st.selectbox("Año", list(range(2022, anio_default + 1)), index=(anio_default - 2022), key="anio_mes")
+            mes = st.selectbox("Mes", list(range(1, 13)), index=(mes_default - 1), key="mes_mes")
+            fecha_inicio = datetime(anio, mes, 1).date()
+            fecha_fin = (datetime(anio + 1, 1, 1).date() - pd.Timedelta(days=1)) if mes == 12 else (datetime(anio, mes + 1, 1).date() - pd.Timedelta(days=1))
+        elif filtro_rango == "Año completo":
+            anio = st.selectbox("Año", list(range(2022, anio_default + 1)), index=(anio_default - 2022), key="anio_anual")
+            fecha_inicio = datetime(anio, 1, 1).date()
+            fecha_fin = datetime(anio, 12, 31).date()
+        elif filtro_rango == "Histórico":
+            fecha_inicio = datetime(2022, 1, 1).date()
+            fecha_fin = fecha_actual
 
-        filtro_df = sin_compra_df.copy()
-        filtro_df = filtro_df[(filtro_df["FECHA"] >= pd.to_datetime(fecha_inicio)) & (filtro_df["FECHA"] <= pd.to_datetime(fecha_fin))]
+    with col4:
+        valor_cte_opciones = ["Todos"] + sorted(sin_compra_df["VALOR_CTE"].dropna().unique())
+        filtro_valor_cte = st.selectbox("VALOR_CTE", valor_cte_opciones)
 
-        if filtro_ejecutivo != "Todos":
-            filtro_df = filtro_df[filtro_df["EJECUTIVO"] == filtro_ejecutivo]
+    # Aplicar filtros
+    filtro_df = sin_compra_df.copy()
+    filtro_df = filtro_df[(filtro_df["FECHA"] >= pd.to_datetime(fecha_inicio)) & (filtro_df["FECHA"] <= pd.to_datetime(fecha_fin))]
 
-        columnas_mostrar = ["FECHA", "CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "VALOR_CTE", "NOTAS", "OBSERVACION"]
-        df_display = filtro_df[columnas_mostrar].copy()
-        df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")
+    if filtro_ejecutivo != "Todos":
+        filtro_df = filtro_df[filtro_df["EJECUTIVO"] == filtro_ejecutivo]
 
-        st.dataframe(df_display.reset_index(drop=True))
+    if filtro_valor_cte != "Todos":
+        filtro_df = filtro_df[filtro_df["VALOR_CTE"] == filtro_valor_cte]
+
+    columnas_mostrar = ["FECHA", "CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "VALOR_CTE", "NOTAS", "OBSERVACION"]
+    df_display = filtro_df[columnas_mostrar].copy()
+    df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")
+
+    st.dataframe(df_display.reset_index(drop=True))
+
 
     else:
         st.warning("No se pudo cargar la información de Bitácora o RPVENTA.")
