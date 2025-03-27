@@ -530,6 +530,3 @@ elif pagina == "Indicadores":
 
     st.dataframe(df_display.reset_index(drop=True))
 
-
-    else:
-        st.warning("No se pudo cargar la información de Bitácora o RPVENTA.")
