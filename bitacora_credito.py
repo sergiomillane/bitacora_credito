@@ -433,10 +433,9 @@ elif pagina == "Indicadores":
             # Rellenar nulos con 0
             resumen_ejecutivo.fillna(0, inplace=True)
 
-            # Calcular %
-            total_sin_compra = resumen_ejecutivo["Sin compra"].sum()
+            # Calcular % Sin compra respecto a sus propios registros
             resumen_ejecutivo["% Sin compra"] = (
-                resumen_ejecutivo["Sin compra"] / total_sin_compra * 100
+                resumen_ejecutivo["Sin compra"] / resumen_ejecutivo["Registros"] * 100
             ).round(2)
 
             # Reordenar columnas
