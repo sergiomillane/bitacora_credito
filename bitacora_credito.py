@@ -454,7 +454,6 @@ elif pagina == "Indicadores":
             st.dataframe(styled_df, use_container_width=True)
 
 
-
         # Agregar VALOR_CTE a sin_compra_df
         valor_cte_df["ID_CLIENTE"] = valor_cte_df["ID_CLIENTE"].astype(str).str.strip()
         sin_compra_df["CLIENTE"] = sin_compra_df["CLIENTE"].astype(str).str.strip()
@@ -469,21 +468,20 @@ elif pagina == "Indicadores":
             sin_compra_df.groupby("VALOR_CTE")["CLIENTE"]
             .nunique()
             .reset_index()
-            .rename(columns={"CLIENTE": "Clientes"})
+            .rename(columns={"CLIENTE": "Clientes sin compra"})
         )
 
-        total_sin_compra = distribucion_valor_cte["Clientes"].sum()
-        distribucion_valor_cte["% del total"] = round((distribucion_valor_cte["Clientes"] / total_sin_compra) * 100, 2)
+        # Usar total_clientes (clientes registrados) como base para el porcentaje
+        distribucion_valor_cte["% del total"] = round((distribucion_valor_cte["Clientes sin compra"] / total_clientes) * 100, 2)
 
         # Ordenar de mayor a menor y mostrar con estilo rojo-verde
         st.subheader("📊 Distribución de VALOR_CTE entre clientes sin compra")
         styled_valor_cte = distribucion_valor_cte.sort_values(by="% del total", ascending=False).style.format({
-            "% del total": "{:.2f} %"
+            "% del total": "{:.2f} %",
+            "Clientes sin compra": "{:.0f}"
         }).background_gradient(subset=["% del total"], cmap="RdYlGn_r")
 
         st.dataframe(styled_valor_cte, use_container_width=True)
-
-
 
 
     # Tabla de clientes sin compra con filtros
