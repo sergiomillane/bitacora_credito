@@ -287,42 +287,45 @@ elif pagina == "Indicadores":
     st.header("📊 Indicadores de Conversión")
 
     from dateutil.relativedelta import relativedelta
+    from datetime import datetime
+    import pandas as pd
 
     # Calcular el primer y último día del mes actual
     hoy = datetime.now()
-    primer_dia_mes = hoy.replace(day=1).date()
-    ultimo_dia_mes = (primer_dia_mes + relativedelta(months=1)) - pd.Timedelta(days=1)
+    primer_dia_mes = hoy.replace(day=1).date()  # Primer día del mes actual
+    ultimo_dia_mes = (primer_dia_mes + relativedelta(months=1)) - pd.Timedelta(days=1)  # Último día del mes actual
 
     # Ajustar el inicio si es marzo 2025
     if primer_dia_mes.year == 2025 and primer_dia_mes.month == 3:
         primer_dia_mes = datetime(2025, 3, 19).date()
 
-
     conn = get_connection()
     if conn:
         try:
-            # Bitácora
+            # Bitácora: Filtrar registros de acuerdo al mes en curso
             query_bitacora = text("""
                 SELECT CLIENTE, FECHA, SUC, VENTA, LC_ACTUAL, LC_FINAL, NOTAS, OBSERVACION, EJECUTIVO
                 FROM Bitacora_Credito
                 WHERE CLIENTE IS NOT NULL
+                AND FECHA BETWEEN :inicio AND :fin
             """)
-            bitacora = pd.read_sql(query_bitacora, conn)
+            bitacora = pd.read_sql(query_bitacora, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})
 
-            # RPVENTA
+            # RPVENTA: Filtrar registros de acuerdo al mes en curso
             query_rpventa = text("""
                 SELECT CLIENTE, FECHA AS FECHA_VENTA, FOLIO_POS, TOTALFACTURA
                 FROM RPVENTA
                 WHERE CLIENTE IS NOT NULL
+                AND FECHA BETWEEN :inicio AND :fin
             """)
-            ventas = pd.read_sql(query_rpventa, conn)
+            ventas = pd.read_sql(query_rpventa, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})
 
-            # Recompra del mes (por FECHA)
+            # Recompra del mes: Filtrar recompra por fechas del mes en curso
             query_recompra = text("""
                 SELECT DISTINCT FOLIO_POS
                 FROM SeguimientoActivacion
                 WHERE Segmento = 'Recompra'
-                  AND FECHA BETWEEN :inicio AND :fin
+                AND FECHA BETWEEN :inicio AND :fin
             """)
             df_recompra = pd.read_sql(query_recompra, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})
 
@@ -356,10 +359,12 @@ elif pagina == "Indicadores":
         bitacora["CLIENTE"] = bitacora["CLIENTE"].astype(str).str.strip()
         ventas["CLIENTE"] = ventas["CLIENTE"].astype(str).str.strip()
 
+        # Filtrar los datos de compras válidas para el mes en curso
         merged = pd.merge(bitacora, ventas, on="CLIENTE", how="left")
         merged["DIAS_PARA_COMPRA"] = (merged["FECHA_VENTA"] - merged["FECHA"]).dt.days
         compras_validas = merged[merged["DIAS_PARA_COMPRA"] >= 0].copy()
 
+        # Resumen de las compras válidas para el mes en curso
         resumen = (
             compras_validas
             .groupby(["CLIENTE", "FOLIO_POS", "FECHA_VENTA"], as_index=False)
@@ -375,6 +380,7 @@ elif pagina == "Indicadores":
             })
         )
 
+        # Indicadores de clientes registrados, con compra y sin compra (solo para el mes en curso)
         total_clientes = bitacora["CLIENTE"].nunique()
         clientes_con_compra = compras_validas["CLIENTE"].nunique()
         clientes_sin_compra = total_clientes - clientes_con_compra
@@ -393,11 +399,12 @@ elif pagina == "Indicadores":
             """, unsafe_allow_html=True)
 
             st.metric("📋 Total Facturas Recompra", total_recompra)
-            st.metric("📎 Clientes registrados", total_clientes)
-            st.metric("✅ Clientes con compra", clientes_con_compra)
-            st.metric("❌ Clientes sin compra", clientes_sin_compra)
+            st.metric("📎 Clientes registrados", clientes_registrados_mes)  # Ahora solo muestra los clientes registrados en el mes en curso
+            st.metric("✅ Clientes con compra", clientes_con_compra)  # Clientes con compra en el mes en curso
+            st.metric("❌ Clientes sin compra", clientes_sin_compra)  # Clientes sin compra en el mes en curso
+
             # === KPI: % Clientes sin compra respecto al total registrados ===
-            porcentaje_sin_compra = round((clientes_sin_compra / total_clientes) * 100, 2) if total_clientes > 0 else 0
+            porcentaje_sin_compra = round((clientes_sin_compra / clientes_registrados_mes) * 100, 2) if clientes_registrados_mes > 0 else 0
 
             st.markdown(f"""
                 <div style="border: 2px solid #2b7bba; border-radius: 10px; padding: 15px; background-color: #e6f2ff; margin-top: 15px;">
@@ -406,21 +413,24 @@ elif pagina == "Indicadores":
                 </div>
             """, unsafe_allow_html=True)
 
-
         with col2:
             st.subheader("Distribución por ejecutivo (clientes sin compra)")
 
             clientes_con_compra_set = set(compras_validas["CLIENTE"].unique())
             sin_compra_df = bitacora[~bitacora["CLIENTE"].isin(clientes_con_compra_set)].copy()
 
+            # Filtrar por mes en curso
+            sin_compra_df = sin_compra_df[(sin_compra_df["FECHA"] >= pd.to_datetime(primer_dia_mes)) & 
+                                          (sin_compra_df["FECHA"] <= pd.to_datetime(ultimo_dia_mes))]
+
             # Agrupación base: todos los registros (clientes registrados)
-            total_registrados_por_ejecutivo = bitacora.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Registros"})
+            total_registrados_por_ejecutivo = sin_compra_df.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Registros"})
 
             # Clientes sin compra
             sin_compra_por_ejecutivo = sin_compra_df.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Sin compra"})
 
             # Clientes con VENTA NO AUTORIZADA (de todos los registrados)
-            no_autorizada = bitacora[bitacora["VENTA"] == "NO AUTORIZADA"]
+            no_autorizada = sin_compra_df[sin_compra_df["VENTA"] == "NO AUTORIZADA"]
             no_autorizada_por_ejecutivo = no_autorizada.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "No aut."})
 
             # Unir todas las métricas
@@ -471,8 +481,8 @@ elif pagina == "Indicadores":
             .rename(columns={"CLIENTE": "Clientes sin compra"})
         )
 
-        # Usar total_clientes (clientes registrados) como base para el porcentaje
-        distribucion_valor_cte["% del total"] = round((distribucion_valor_cte["Clientes sin compra"] / total_clientes) * 100, 2)
+        # Usar clientes registrados en el mes como base para el porcentaje
+        distribucion_valor_cte["% del total"] = round((distribucion_valor_cte["Clientes sin compra"] / clientes_registrados_mes) * 100, 2)
 
         # Ordenar de mayor a menor y mostrar con estilo rojo-verde
         st.subheader("📊 Distribución de VALOR_CTE entre clientes sin compra")
@@ -496,12 +506,12 @@ elif pagina == "Indicadores":
         filtro_ejecutivo = st.selectbox("Ejecutivo", ["Todos"] + sorted(sin_compra_df["EJECUTIVO"].dropna().unique()))
 
     with col3:
-        anio_default = fecha_actual.year
-        mes_default = fecha_actual.month
+        anio_default = hoy.year
+        mes_default = hoy.month
         fecha_inicio, fecha_fin = None, None
 
         if filtro_rango == "Día específico":
-            fecha = st.date_input("Día", value=fecha_actual, key="fecha_dia")
+            fecha = st.date_input("Día", value=hoy, key="fecha_dia")
             fecha_inicio = fecha_fin = fecha
         elif filtro_rango == "Mes específico":
             anio = st.selectbox("Año", list(range(2022, anio_default + 1)), index=(anio_default - 2022), key="anio_mes")
@@ -514,7 +524,7 @@ elif pagina == "Indicadores":
             fecha_fin = datetime(anio, 12, 31).date()
         elif filtro_rango == "Histórico":
             fecha_inicio = datetime(2022, 1, 1).date()
-            fecha_fin = fecha_actual
+            fecha_fin = hoy
 
     with col4:
         valor_cte_opciones = ["Todos"] + sorted(sin_compra_df["VALOR_CTE"].dropna().unique())
@@ -535,4 +545,5 @@ elif pagina == "Indicadores":
     df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")
 
     st.dataframe(df_display.reset_index(drop=True))
+
 
