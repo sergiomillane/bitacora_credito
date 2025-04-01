@@ -290,39 +290,41 @@ elif pagina == "Indicadores":
 
     # Calcular el primer y último día del mes actual
     hoy = datetime.now()
-    primer_dia_mes = hoy.replace(day=1).date()
-    ultimo_dia_mes = (primer_dia_mes + relativedelta(months=1)) - pd.Timedelta(days=1)
+    primer_dia_mes = hoy.replace(day=1).date()  # Primer día del mes actual
+    ultimo_dia_mes = (primer_dia_mes + relativedelta(months=1)) - pd.Timedelta(days=1)  # Último día del mes actual
 
-    # Ajustar el inicio si es marzo 2025
+    # Ajustar si es marzo 2025 (según lo que mencionaste en el código anterior)
     if primer_dia_mes.year == 2025 and primer_dia_mes.month == 3:
         primer_dia_mes = datetime(2025, 3, 19).date()
 
-
+    # Conexión a la base de datos (esto dependerá de tu implementación)
     conn = get_connection()
     if conn:
         try:
-            # Bitácora
+            # Bitácora: Filtrar registros de acuerdo al mes en curso
             query_bitacora = text("""
                 SELECT CLIENTE, FECHA, SUC, VENTA, LC_ACTUAL, LC_FINAL, NOTAS, OBSERVACION, EJECUTIVO
                 FROM Bitacora_Credito
                 WHERE CLIENTE IS NOT NULL
+                AND FECHA BETWEEN :inicio AND :fin
             """)
-            bitacora = pd.read_sql(query_bitacora, conn)
+            bitacora = pd.read_sql(query_bitacora, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})
 
-            # RPVENTA
+            # RPVENTA: Filtrar registros de acuerdo al mes en curso
             query_rpventa = text("""
                 SELECT CLIENTE, FECHA AS FECHA_VENTA, FOLIO_POS, TOTALFACTURA
                 FROM RPVENTA
                 WHERE CLIENTE IS NOT NULL
+                AND FECHA BETWEEN :inicio AND :fin
             """)
-            ventas = pd.read_sql(query_rpventa, conn)
+            ventas = pd.read_sql(query_rpventa, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})
 
-            # Recompra del mes (por FECHA)
+            # Recompra del mes: Filtrar recompra por fechas del mes en curso
             query_recompra = text("""
                 SELECT DISTINCT FOLIO_POS
                 FROM SeguimientoActivacion
                 WHERE Segmento = 'Recompra'
-                  AND FECHA BETWEEN :inicio AND :fin
+                AND FECHA BETWEEN :inicio AND :fin
             """)
             df_recompra = pd.read_sql(query_recompra, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})
 
@@ -334,7 +336,7 @@ elif pagina == "Indicadores":
             """)
             clientes_registrados_mes = pd.read_sql(query_bitacora_mes, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})["conteo"][0]
 
-            # Prueba_Cliente
+            # Prueba_Cliente: No necesita filtro por fecha, ya que es información general
             query_valor_cte = text("""
                 SELECT ID_CLIENTE, VALOR_CTE
                 FROM Prueba_Cliente
@@ -350,16 +352,19 @@ elif pagina == "Indicadores":
             clientes_registrados_mes = 0
             valor_cte_df = pd.DataFrame()
 
+    # Procesar los datos solo si los DataFrames no están vacíos
     if not bitacora.empty and not ventas.empty:
         bitacora["FECHA"] = pd.to_datetime(bitacora["FECHA"])
         ventas["FECHA_VENTA"] = pd.to_datetime(ventas["FECHA_VENTA"])
         bitacora["CLIENTE"] = bitacora["CLIENTE"].astype(str).str.strip()
         ventas["CLIENTE"] = ventas["CLIENTE"].astype(str).str.strip()
 
+        # Fusionar datos de Bitácora y RPVENTA por cliente
         merged = pd.merge(bitacora, ventas, on="CLIENTE", how="left")
         merged["DIAS_PARA_COMPRA"] = (merged["FECHA_VENTA"] - merged["FECHA"]).dt.days
         compras_validas = merged[merged["DIAS_PARA_COMPRA"] >= 0].copy()
 
+        # Resumen de las compras válidas
         resumen = (
             compras_validas
             .groupby(["CLIENTE", "FOLIO_POS", "FECHA_VENTA"], as_index=False)
@@ -396,6 +401,7 @@ elif pagina == "Indicadores":
             st.metric("📎 Clientes registrados", total_clientes)
             st.metric("✅ Clientes con compra", clientes_con_compra)
             st.metric("❌ Clientes sin compra", clientes_sin_compra)
+
             # === KPI: % Clientes sin compra respecto al total registrados ===
             porcentaje_sin_compra = round((clientes_sin_compra / total_clientes) * 100, 2) if total_clientes > 0 else 0
 
@@ -405,7 +411,6 @@ elif pagina == "Indicadores":
                     <p style="font-size: 28px; font-weight: bold; margin: 0; color: #000;">{porcentaje_sin_compra}%</p>
                 </div>
             """, unsafe_allow_html=True)
-
 
         with col2:
             st.subheader("Distribución por ejecutivo (clientes sin compra)")
