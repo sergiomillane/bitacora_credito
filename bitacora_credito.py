@@ -419,17 +419,22 @@ elif pagina == "Indicadores":
         with col2:
             st.subheader("Distribución por ejecutivo (clientes sin compra)")
 
+            # Filtrar bitacora y compras_validas solo para el mes en curso
             clientes_con_compra_set = set(compras_validas["CLIENTE"].unique())
             sin_compra_df = bitacora[~bitacora["CLIENTE"].isin(clientes_con_compra_set)].copy()
 
-            # Agrupación base: todos los registros (clientes registrados)
-            total_registrados_por_ejecutivo = bitacora.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Registros"})
+            # Filtrar sin_compra_df por fechas del mes en curso
+            sin_compra_df = sin_compra_df[(sin_compra_df["FECHA"] >= pd.to_datetime(primer_dia_mes)) & 
+                                        (sin_compra_df["FECHA"] <= pd.to_datetime(ultimo_dia_mes))]
 
-            # Clientes sin compra
+            # Agrupación base: todos los registros (clientes registrados en el mes en curso)
+            total_registrados_por_ejecutivo = sin_compra_df.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Registros"})
+
+            # Clientes sin compra en el mes en curso
             sin_compra_por_ejecutivo = sin_compra_df.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Sin compra"})
 
-            # Clientes con VENTA NO AUTORIZADA (de todos los registrados)
-            no_autorizada = bitacora[bitacora["VENTA"] == "NO AUTORIZADA"]
+            # Clientes con VENTA NO AUTORIZADA (de todos los registrados en el mes en curso)
+            no_autorizada = sin_compra_df[sin_compra_df["VENTA"] == "NO AUTORIZADA"]
             no_autorizada_por_ejecutivo = no_autorizada.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "No aut."})
 
             # Unir todas las métricas
