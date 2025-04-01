@@ -283,6 +283,7 @@ if pagina == "Bitácora de Actividades":
                 st.rerun()
 
 
+
 elif pagina == "Indicadores":
     st.header("📊 Indicadores de Conversión")
 
@@ -423,45 +424,49 @@ elif pagina == "Indicadores":
             sin_compra_df = sin_compra_df[(sin_compra_df["FECHA"] >= pd.to_datetime(primer_dia_mes)) & 
                                           (sin_compra_df["FECHA"] <= pd.to_datetime(ultimo_dia_mes))]
 
-            # Agrupación base: todos los registros (clientes registrados)
-            total_registrados_por_ejecutivo = sin_compra_df.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Registros"})
+            # Asegurarse de que la columna "EJECUTIVO" exista
+            if "EJECUTIVO" in sin_compra_df.columns:
+                # Agrupación base: todos los registros (clientes registrados)
+                total_registrados_por_ejecutivo = sin_compra_df.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Registros"})
 
-            # Clientes sin compra
-            sin_compra_por_ejecutivo = sin_compra_df.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Sin compra"})
+                # Clientes sin compra
+                sin_compra_por_ejecutivo = sin_compra_df.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Sin compra"})
 
-            # Clientes con VENTA NO AUTORIZADA (de todos los registrados)
-            no_autorizada = sin_compra_df[sin_compra_df["VENTA"] == "NO AUTORIZADA"]
-            no_autorizada_por_ejecutivo = no_autorizada.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "No aut."})
+                # Clientes con VENTA NO AUTORIZADA (de todos los registrados)
+                no_autorizada = sin_compra_df[sin_compra_df["VENTA"] == "NO AUTORIZADA"]
+                no_autorizada_por_ejecutivo = no_autorizada.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "No aut."})
 
-            # Unir todas las métricas
-            resumen_ejecutivo = total_registrados_por_ejecutivo.merge(
-                no_autorizada_por_ejecutivo, on="EJECUTIVO", how="left"
-            ).merge(
-                sin_compra_por_ejecutivo, on="EJECUTIVO", how="left"
-            )
+                # Unir todas las métricas
+                resumen_ejecutivo = total_registrados_por_ejecutivo.merge(
+                    no_autorizada_por_ejecutivo, on="EJECUTIVO", how="left"
+                ).merge(
+                    sin_compra_por_ejecutivo, on="EJECUTIVO", how="left"
+                )
 
-            # Rellenar nulos con 0
-            resumen_ejecutivo.fillna(0, inplace=True)
+                # Rellenar nulos con 0
+                resumen_ejecutivo.fillna(0, inplace=True)
 
-            # Calcular % Sin compra respecto a sus propios registros
-            resumen_ejecutivo["% Sin compra"] = (
-                resumen_ejecutivo["Sin compra"] / resumen_ejecutivo["Registros"] * 100
-            ).round(2)
+                # Calcular % Sin compra respecto a sus propios registros
+                resumen_ejecutivo["% Sin compra"] = (
+                    resumen_ejecutivo["Sin compra"] / resumen_ejecutivo["Registros"] * 100
+                ).round(2)
 
-            # Reordenar columnas
-            resumen_ejecutivo = resumen_ejecutivo[["EJECUTIVO", "Registros", "No aut.", "Sin compra", "% Sin compra"]]
+                # Reordenar columnas
+                resumen_ejecutivo = resumen_ejecutivo[["EJECUTIVO", "Registros", "No aut.", "Sin compra", "% Sin compra"]]
 
-            # Tabla estilizada
-            styled_df = resumen_ejecutivo.sort_values(by="% Sin compra", ascending=False).style.format({
-                "% Sin compra": "{:.2f}",
-                "Registros": "{:.0f}",
-                "No aut.": "{:.0f}",
-                "Sin compra": "{:.0f}"
-            }).background_gradient(
-                subset=["% Sin compra"], cmap="RdYlGn_r"
-            )
+                # Tabla estilizada
+                styled_df = resumen_ejecutivo.sort_values(by="% Sin compra", ascending=False).style.format({
+                    "% Sin compra": "{:.2f}",
+                    "Registros": "{:.0f}",
+                    "No aut.": "{:.0f}",
+                    "Sin compra": "{:.0f}"
+                }).background_gradient(
+                    subset=["% Sin compra"], cmap="RdYlGn_r"
+                )
 
-            st.dataframe(styled_df, use_container_width=True)
+                st.dataframe(styled_df, use_container_width=True)
+            else:
+                st.warning("La columna 'EJECUTIVO' no está presente en los datos de clientes sin compra.")
 
         # Agregar VALOR_CTE a sin_compra_df
         valor_cte_df["ID_CLIENTE"] = valor_cte_df["ID_CLIENTE"].astype(str).str.strip()
@@ -491,6 +496,8 @@ elif pagina == "Indicadores":
         }).background_gradient(subset=["% del total"], cmap="RdYlGn_r")
 
         st.dataframe(styled_valor_cte, use_container_width=True)
+
+
 
     # Tabla de clientes sin compra con filtros
     st.subheader("📋 Clientes sin compra")
