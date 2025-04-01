@@ -463,14 +463,13 @@ elif pagina == "Indicadores":
 
             st.dataframe(styled_df, use_container_width=True)
 
-
         # Agregar VALOR_CTE a sin_compra_df
         valor_cte_df["ID_CLIENTE"] = valor_cte_df["ID_CLIENTE"].astype(str).str.strip()
         sin_compra_df["CLIENTE"] = sin_compra_df["CLIENTE"].astype(str).str.strip()
         sin_compra_df = sin_compra_df.merge(valor_cte_df, left_on="CLIENTE", right_on="ID_CLIENTE", how="left")
         sin_compra_df.drop(columns=["ID_CLIENTE"], inplace=True)
 
-        # ✅ Reemplazar nulos por "Nuevo"
+        # Reemplazar nulos por "Nuevo"
         sin_compra_df["VALOR_CTE"] = sin_compra_df["VALOR_CTE"].fillna("Nuevo")
 
         # Calcular distribución porcentual de los tipos de VALOR_CTE
@@ -492,7 +491,6 @@ elif pagina == "Indicadores":
         }).background_gradient(subset=["% del total"], cmap="RdYlGn_r")
 
         st.dataframe(styled_valor_cte, use_container_width=True)
-
 
     # Tabla de clientes sin compra con filtros
     st.subheader("📋 Clientes sin compra")
@@ -545,5 +543,4 @@ elif pagina == "Indicadores":
     df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")
 
     st.dataframe(df_display.reset_index(drop=True))
-
 
