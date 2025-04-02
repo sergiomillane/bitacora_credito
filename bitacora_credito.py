@@ -419,43 +419,46 @@ elif pagina == "Indicadores":
         with col2:
             st.subheader("Distribución por ejecutivo (clientes sin compra)")
 
-            # Filtrar bitacora y compras_validas solo para el mes en curso
+            # 1. Filtrar bitácora al mes actual
+            bitacora_mes = bitacora[
+                (bitacora["FECHA"] >= pd.to_datetime(primer_dia_mes)) & 
+                (bitacora["FECHA"] <= pd.to_datetime(ultimo_dia_mes))
+            ].copy()
+
+            # 2. Identificar clientes con compra válida
             clientes_con_compra_set = set(compras_validas["CLIENTE"].unique())
-            sin_compra_df = bitacora[~bitacora["CLIENTE"].isin(clientes_con_compra_set)].copy()
 
-            # Filtrar sin_compra_df por fechas del mes en curso
-            sin_compra_df = sin_compra_df[(sin_compra_df["FECHA"] >= pd.to_datetime(primer_dia_mes)) & 
-                                        (sin_compra_df["FECHA"] <= pd.to_datetime(ultimo_dia_mes))]
+            # 3. Clientes sin compra (en base a bitácora del mes)
+            sin_compra_df = bitacora_mes[~bitacora_mes["CLIENTE"].isin(clientes_con_compra_set)]
 
-            # Agrupación base: todos los registros (clientes registrados en el mes en curso)
-            total_registrados_por_ejecutivo = sin_compra_df.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Registros"})
+            # 4. Total de registros capturados por ejecutivo (del universo total en el mes)
+            total_registrados_por_ejecutivo = bitacora_mes.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Registros"})
 
-            # Clientes sin compra en el mes en curso
+            # 5. Registros con VENTA = 'NO AUTORIZADA'
+            no_autorizada_df = bitacora_mes[bitacora_mes["VENTA"] == "NO AUTORIZADA"]
+            no_autorizada_por_ejecutivo = no_autorizada_df.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "No aut."})
+
+            # 6. Registros sin compra
             sin_compra_por_ejecutivo = sin_compra_df.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Sin compra"})
 
-            # Clientes con VENTA NO AUTORIZADA (de todos los registrados en el mes en curso)
-            no_autorizada = sin_compra_df[sin_compra_df["VENTA"] == "NO AUTORIZADA"]
-            no_autorizada_por_ejecutivo = no_autorizada.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "No aut."})
-
-            # Unir todas las métricas
+            # 7. Unir todo en un resumen
             resumen_ejecutivo = total_registrados_por_ejecutivo.merge(
                 no_autorizada_por_ejecutivo, on="EJECUTIVO", how="left"
             ).merge(
                 sin_compra_por_ejecutivo, on="EJECUTIVO", how="left"
             )
 
-            # Rellenar nulos con 0
             resumen_ejecutivo.fillna(0, inplace=True)
 
-            # Calcular % Sin compra respecto a sus propios registros
+            # 8. Calcular el porcentaje de clientes sin compra
             resumen_ejecutivo["% Sin compra"] = (
                 resumen_ejecutivo["Sin compra"] / resumen_ejecutivo["Registros"] * 100
             ).round(2)
 
-            # Reordenar columnas
+            # 9. Reordenar columnas
             resumen_ejecutivo = resumen_ejecutivo[["EJECUTIVO", "Registros", "No aut.", "Sin compra", "% Sin compra"]]
 
-            # Tabla estilizada
+            # 10. Mostrar tabla estilizada
             styled_df = resumen_ejecutivo.sort_values(by="% Sin compra", ascending=False).style.format({
                 "% Sin compra": "{:.2f}",
                 "Registros": "{:.0f}",
@@ -466,6 +469,7 @@ elif pagina == "Indicadores":
             )
 
             st.dataframe(styled_df, use_container_width=True)
+
 
 
         # Agregar VALOR_CTE a sin_compra_df
