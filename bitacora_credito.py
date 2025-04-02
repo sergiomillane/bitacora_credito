@@ -470,6 +470,17 @@ elif pagina == "Indicadores":
 
             st.dataframe(styled_df, use_container_width=True)
 
+            # 11. KPI de actualizaciones de cliente en el mes (color amarillo claro)
+            actualizaciones_cliente = bitacora_mes[bitacora_mes["Actualización cliente"] == "SI"].shape[0]
+
+            st.markdown(f"""
+                <div style="margin-top: 20px; border: 2px solid #f7c948; border-radius: 10px; padding: 15px; background-color: #fff8e1;">
+                    <h4 style="margin: 0; color: #f7c948;">📎 Registros con actualización de cliente</h4>
+                    <p style="font-size: 28px; font-weight: bold; margin: 0; color: #000;">{actualizaciones_cliente}</p>
+                </div>
+            """, unsafe_allow_html=True)
+
+
 
 
         # Agregar VALOR_CTE a sin_compra_df
