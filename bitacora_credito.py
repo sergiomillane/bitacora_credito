@@ -394,7 +394,7 @@ elif pagina == "Indicadores":
         with col1:
             st.markdown(f"""
                 <div style="border: 2px solid #ff4b4b; border-radius: 10px; padding: 15px; background-color: #fff3f3;">
-                    <h4 style="margin: 0; color: #ff4b4b;">📌 % Clientes recompra procesados</h4>
+                    <h4 style="margin: 0; color: #ff4b4b;">📌 % Clientes recompra registrados</h4>
                     <p style="font-size: 28px; font-weight: bold; margin: 0; color: #000;">{porcentaje_bitacora_recompra}%</p>
                 </div>
             """, unsafe_allow_html=True)
@@ -497,16 +497,16 @@ elif pagina == "Indicadores":
             sin_compra_df.groupby("VALOR_CTE")["CLIENTE"]
             .nunique()
             .reset_index()
-            .rename(columns={"CLIENTE": "Clientes sin compra"})
+            .rename(columns={"CLIENTE": "Clientes sin compra","VALOR_CTE":"Clasificación de cliente"})
         )
 
         # Usar total_clientes (clientes registrados) como base para el porcentaje
         distribucion_valor_cte["% del total"] = round((distribucion_valor_cte["Clientes sin compra"] / total_clientes) * 100, 2)
 
         # Ordenar de mayor a menor y mostrar con estilo rojo-verde
-        st.subheader("📊 Distribución de VALOR_CTE entre clientes sin compra")
+        st.subheader("📊 Distribución de clasificación de cliente entre clientes sin compra")
         styled_valor_cte = distribucion_valor_cte.sort_values(by="% del total", ascending=False).style.format({
-            "% del total": "{:.2f} %",
+            "% No compra": "{:.2f} %",
             "Clientes sin compra": "{:.0f}"
         }).background_gradient(subset=["% del total"], cmap="RdYlGn_r")
 
