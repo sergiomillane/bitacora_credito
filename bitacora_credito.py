@@ -547,7 +547,7 @@ elif pagina == "Indicadores":
 
     with col4:
         cc_opciones = ["Todos"] + sorted(sin_compra_df["VALOR_CTE"].dropna().unique())
-        filtro_cc = st.selectbox("Clasificacion de cliente", cc_opciones)
+        filtro_cc = st.selectbox("CC", cc_opciones)
 
     # Aplicar filtros
     filtro_df = sin_compra_df.copy()
@@ -560,7 +560,7 @@ elif pagina == "Indicadores":
         filtro_df = filtro_df[filtro_df["VALOR_CTE"] == filtro_cc]
 
     # Renombrar columna
-    filtro_df = filtro_df.rename(columns={"VALOR_CTE": "Clasificacion de cliente"})
+    filtro_df = filtro_df.rename(columns={"VALOR_CTE": "CC"})
 
     columnas_mostrar = ["FECHA", "CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "CC", "NOTAS", "OBSERVACION"]
     df_display = filtro_df[columnas_mostrar].copy()
