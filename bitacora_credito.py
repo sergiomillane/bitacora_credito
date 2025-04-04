@@ -547,7 +547,7 @@ elif pagina == "Indicadores":
 
     with col4:
         cc_opciones = ["Todos"] + sorted(sin_compra_df["VALOR_CTE"].dropna().unique())
-        filtro_cc = st.selectbox("CC", cc_opciones)
+        filtro_cc = st.selectbox("Clasificacion de Cliente", cc_opciones)
 
     # Aplicar filtros
     filtro_df = sin_compra_df.copy()
