@@ -501,14 +501,14 @@ elif pagina == "Indicadores":
         )
 
         # Usar total_clientes (clientes registrados) como base para el porcentaje
-        distribucion_valor_cte["% del total"] = round((distribucion_valor_cte["Clientes sin compra"] / total_clientes) * 100, 2)
+        distribucion_valor_cte["% No compra"] = round((distribucion_valor_cte["Clientes sin compra"] / total_clientes) * 100, 2)
 
         # Ordenar de mayor a menor y mostrar con estilo rojo-verde
         st.subheader("📊 Distribución de clasificación de cliente entre clientes sin compra")
-        styled_valor_cte = distribucion_valor_cte.sort_values(by="% del total", ascending=False).style.format({
+        styled_valor_cte = distribucion_valor_cte.sort_values(by="% No compra", ascending=False).style.format({
             "% No compra": "{:.2f} %",
             "Clientes sin compra": "{:.0f}"
-        }).background_gradient(subset=["% del total"], cmap="RdYlGn_r")
+        }).background_gradient(subset=["% No compra"], cmap="RdYlGn_r")
 
         st.dataframe(styled_valor_cte, use_container_width=True)
 
