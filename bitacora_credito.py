@@ -546,8 +546,8 @@ elif pagina == "Indicadores":
             fecha_fin = fecha_actual
 
     with col4:
-        valor_cte_opciones = ["Todos"] + sorted(sin_compra_df["VALOR_CTE"].dropna().unique())
-        filtro_valor_cte = st.selectbox("VALOR_CTE", valor_cte_opciones)
+        cc_opciones = ["Todos"] + sorted(sin_compra_df["VALOR_CTE"].dropna().unique())
+        filtro_cc = st.selectbox("Clasificacion de cliente", cc_opciones)
 
     # Aplicar filtros
     filtro_df = sin_compra_df.copy()
@@ -556,10 +556,13 @@ elif pagina == "Indicadores":
     if filtro_ejecutivo != "Todos":
         filtro_df = filtro_df[filtro_df["EJECUTIVO"] == filtro_ejecutivo]
 
-    if filtro_valor_cte != "Todos":
-        filtro_df = filtro_df[filtro_df["VALOR_CTE"] == filtro_valor_cte]
+    if filtro_cc != "Todos":
+        filtro_df = filtro_df[filtro_df["VALOR_CTE"] == filtro_cc]
 
-    columnas_mostrar = ["FECHA", "CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "VALOR_CTE", "NOTAS", "OBSERVACION"]
+    # Renombrar columna
+    filtro_df = filtro_df.rename(columns={"VALOR_CTE": "Clasificacion de cliente"})
+
+    columnas_mostrar = ["FECHA", "CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "CC", "NOTAS", "OBSERVACION"]
     df_display = filtro_df[columnas_mostrar].copy()
     df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")
 
