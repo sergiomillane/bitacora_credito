@@ -53,7 +53,7 @@ if pagina == "Bitácora de Actividades":
             sucursal = st.selectbox("Sucursal", list(range(1, 101)))
             
         with col2:
-            venta = st.selectbox("Venta", ["AUTORIZADA", "NO AUTORIZADA", "AUTORIZADA PARCIAL"])
+            venta = st.selectbox("Venta", ["AUTORIZADA", "NO AUTORIZADA", "AUTORIZADA PARCIAL","VISITA DOMICILIARIA"])
             cliente = st.text_input("ID_Cliente")
             lc_actual = st.number_input("LC Actual", min_value=0.0, format="%.2f")
             lc_final = st.number_input("LC Final", min_value=0.0, format="%.2f")
@@ -473,12 +473,24 @@ elif pagina == "Indicadores":
             # 11. KPI de actualizaciones de cliente en el mes (color amarillo claro)
             actualizaciones_cliente = bitacora_mes[bitacora_mes["Actualizacion"] == "SI"].shape[0]
 
-            st.markdown(f"""
-                <div style="margin-top: 20px; border: 2px solid #f7c948; border-radius: 10px; padding: 15px; background-color: #fff8e1;">
-                    <h4 style="margin: 0; color: #f7c948;">📎 Registros con actualización de cliente</h4>
-                    <p style="font-size: 28px; font-weight: bold; margin: 0; color: #000;">{actualizaciones_cliente}</p>
-                </div>
-            """, unsafe_allow_html=True)
+            kpi_col1, kpi_col2 = st.columns(2)
+
+            with kpi_col1:
+                st.markdown(f"""
+                    <div style="margin-top: 20px; border: 2px solid #f7c948; border-radius: 10px; padding: 15px; background-color: #fff8e1;">
+                        <h4 style="margin: 0; color: #f7c948;">📎 Registros con actualización de cliente</h4>
+                        <p style="font-size: 28px; font-weight: bold; margin: 0; color: #000;">{actualizaciones_cliente}</p>
+                    </div>
+                """, unsafe_allow_html=True)
+
+            with kpi_col2:
+                st.markdown(f"""
+                    <div style="margin-top: 20px; border: 2px solid #6fa24f; border-radius: 10px; padding: 15px; background-color: #edf7ed;">
+                        <h4 style="margin: 0; color: #6fa24f;">🏠 Registros con VISITA DOMICILIARIA</h4>
+                        <p style="font-size: 28px; font-weight: bold; margin: 0; color: #000;">{visitas_domiciliarias}</p>
+                    </div>
+                """, unsafe_allow_html=True)
+
 
 
 
