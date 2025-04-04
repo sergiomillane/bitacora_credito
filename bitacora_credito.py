@@ -472,6 +472,7 @@ elif pagina == "Indicadores":
 
             # 11. KPI de actualizaciones de cliente en el mes (color amarillo claro)
             actualizaciones_cliente = bitacora_mes[bitacora_mes["Actualizacion"] == "SI"].shape[0]
+            visitas_domiciliarias = bitacora_mes[bitacora_mes["Venta"] == "VISITA DOMICILIARIA"].shape[0]
 
             kpi_col1, kpi_col2 = st.columns(2)
 
