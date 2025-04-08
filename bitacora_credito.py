@@ -473,8 +473,9 @@ elif pagina == "Indicadores":
             # 11. KPI de actualizaciones de cliente en el mes (color amarillo claro)
             actualizaciones_cliente = bitacora_mes[bitacora_mes["Actualizacion"] == "SI"].shape[0]
             visitas_domiciliarias = bitacora_mes[bitacora_mes["VENTA"] == "VISITA DOMICILIARIA"].shape[0]
+            clientes_rechazados = bitacora_mes[bitacora_mes["VENTA"] == "NO AUTORIZADA"].shape[0]
 
-            kpi_col1, kpi_col2 = st.columns(2)
+            kpi_col1, kpi_col2,kpi_col3 = st.columns(3)
 
             with kpi_col1:
                 st.markdown(f"""
@@ -492,6 +493,13 @@ elif pagina == "Indicadores":
                     </div>
                 """, unsafe_allow_html=True)
 
+            with kpi_col3:
+                st.markdown(f"""
+                    <div style="margin-top: 20px; border: 2px solid #f28b82; border-radius: 10px; padding: 15px; background-color: #fdecea;">
+                        <h4 style="margin: 0; color: #f28b82;">📎 Registros con actualización de cliente</h4>
+                        <p style="font-size: 28px; font-weight: bold; margin: 0; color: #000;">{clientes_rechazados}</p>
+                    </div>
+                """, unsafe_allow_html=True)
 
 
 
