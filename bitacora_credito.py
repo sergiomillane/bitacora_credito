@@ -496,7 +496,7 @@ elif pagina == "Indicadores":
             with kpi_col3:
                 st.markdown(f"""
                     <div style="margin-top: 20px; border: 2px solid #f28b82; border-radius: 10px; padding: 15px; background-color: #fdecea;">
-                        <h4 style="margin: 0; color: #f28b82;">📎 Registros con actualización de cliente</h4>
+                        <h4 style="margin: 0; color: #f28b82;">❌ Registros no autorizados</h4>
                         <p style="font-size: 28px; font-weight: bold; margin: 0; color: #000;">{clientes_rechazados}</p>
                     </div>
                 """, unsafe_allow_html=True)
