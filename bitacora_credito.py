@@ -488,7 +488,7 @@ elif pagina == "Indicadores":
             with kpi_col2:
                 st.markdown(f"""
                     <div style="margin-top: 20px; border: 2px solid #6fa24f; border-radius: 10px; padding: 15px; background-color: #edf7ed;">
-                        <h4 style="margin: 0; color: #6fa24f;">🏠 Registros con VISITA DOMICILIARIA</h4>
+                        <h4 style="margin: 0; color: #6fa24f;">🏠 Registros con visita domiciliaria</h4>
                         <p style="font-size: 28px; font-weight: bold; margin: 0; color: #000;">{visitas_domiciliarias}</p>
                     </div>
                 """, unsafe_allow_html=True)
