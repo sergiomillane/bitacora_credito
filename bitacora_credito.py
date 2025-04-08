@@ -481,7 +481,7 @@ elif pagina == "Indicadores":
                 st.markdown(f"""
                     <div style="margin-top: 20px; border: 2px solid #f7c948; border-radius: 10px; padding: 15px; background-color: #fff8e1;">
                         <h4 style="margin: 0; color: #f7c948;">📎 Registros con actualización</h4>
-                        <p style="font-size: 24px; font-weight: bold; margin: 0; color: #000;">{actualizaciones_cliente}</p>
+                        <p style="font-size: 20px; font-weight: bold; margin: 0; color: #000;">{actualizaciones_cliente}</p>
                     </div>
                 """, unsafe_allow_html=True)
 
@@ -489,7 +489,7 @@ elif pagina == "Indicadores":
                 st.markdown(f"""
                     <div style="margin-top: 20px; border: 2px solid #6fa24f; border-radius: 10px; padding: 15px; background-color: #edf7ed;">
                         <h4 style="margin: 0; color: #6fa24f;">🏠 Registros con visita domiciliaria</h4>
-                        <p style="font-size: 24px; font-weight: bold; margin: 0; color: #000;">{visitas_domiciliarias}</p>
+                        <p style="font-size: 20px; font-weight: bold; margin: 0; color: #000;">{visitas_domiciliarias}</p>
                     </div>
                 """, unsafe_allow_html=True)
 
@@ -497,7 +497,7 @@ elif pagina == "Indicadores":
                 st.markdown(f"""
                     <div style="margin-top: 20px; border: 2px solid #f28b82; border-radius: 10px; padding: 15px; background-color: #fdecea;">
                         <h4 style="margin: 0; color: #f28b82;">❌ Registros no autorizados</h4>
-                        <p style="font-size: 24px; font-weight: bold; margin: 0; color: #000;">{clientes_rechazados}</p>
+                        <p style="font-size: 20px; font-weight: bold; margin: 0; color: #000;">{clientes_rechazados}</p>
                     </div>
                 """, unsafe_allow_html=True)
 
