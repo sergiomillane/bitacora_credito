@@ -309,7 +309,7 @@ elif pagina == "Indicadores":
         try:
             # Bitácora
             query_bitacora = text("""
-                SELECT CLIENTE, FECHA, SUC, VENTA, LC_ACTUAL, LC_FINAL, NOTAS, OBSERVACION, EJECUTIVO, Actualizacion
+                SELECT CLIENTE, FECHA, SUC, VENTA, LC_ACTUAL, LC_FINAL, NOTAS, OBSERVACION, EJECUTIVO, Actualizacion, innecesario
                 FROM Bitacora_Credito
                 WHERE CLIENTE IS NOT NULL
             """)
