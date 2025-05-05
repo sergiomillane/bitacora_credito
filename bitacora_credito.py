@@ -593,8 +593,7 @@ elif pagina == "Indicadores":
     df_display = filtro_df[columnas_mostrar].copy()
     df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")
 
-    df_display = df_display.fillna("")  # reemplaza None/NaN por vacío
-    st.dataframe(df_display.reset_index(drop=True))
+    st.write(df_display.reset_index(drop=True))
 
 
 
