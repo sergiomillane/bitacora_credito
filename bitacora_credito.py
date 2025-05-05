@@ -390,6 +390,9 @@ elif pagina == "Indicadores":
         clientes_registrados_mes = bitacora[(bitacora["FECHA"] >= pd.to_datetime(primer_dia_mes)) & 
                                     (bitacora["FECHA"] <= pd.to_datetime(ultimo_dia_mes))]
         
+        clientes_innecesarios = clientes_registrados_mes[clientes_registrados_mes["innecesario"] == "SI"]["CLIENTE"].nunique()
+
+        
         clientes_con_compra_mes = compras_validas[compras_validas["CLIENTE"].isin(clientes_registrados_mes["CLIENTE"])]
         clientes_sin_compra_mes = clientes_registrados_mes[~clientes_registrados_mes["CLIENTE"].isin(clientes_con_compra_mes["CLIENTE"])]
 
@@ -409,6 +412,8 @@ elif pagina == "Indicadores":
             st.metric("📎 Clientes registrados", clientes_registrados_mes["CLIENTE"].nunique())  # Solo clientes registrados en el mes en curso
             st.metric("✅ Clientes con compra", clientes_con_compra_mes["CLIENTE"].nunique())  # Clientes con compra en el mes en curso
             st.metric("❌ Clientes sin compra", clientes_sin_compra_mes["CLIENTE"].nunique())  # Clientes sin compra en el mes en curso
+            st.metric("🟡 Solicitudes innecesarias", clientes_innecesarios)
+
 
             # === KPI: % Clientes sin compra respecto al total registrados ===
             porcentaje_sin_compra = round((clientes_sin_compra_mes["CLIENTE"].nunique() / 
