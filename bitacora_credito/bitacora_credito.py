@@ -53,7 +53,7 @@ if pagina == "Bitácora de Actividades":
             sucursal = st.selectbox("Sucursal", list(range(1, 101)))
             
         with col2:
-            venta = st.selectbox("Venta", ["AUTORIZADA", "NO AUTORIZADA", "AUTORIZADA PARCIAL"])
+            venta = st.selectbox("Venta", ["AUTORIZADA", "NO AUTORIZADA", "AUTORIZADA PARCIAL","VISITA DOMICILIARIA"])
             cliente = st.text_input("ID_Cliente")
             lc_actual = st.number_input("LC Actual", min_value=0.0, format="%.2f")
             lc_final = st.number_input("LC Final", min_value=0.0, format="%.2f")
@@ -88,12 +88,15 @@ if pagina == "Bitácora de Actividades":
         # Fila aparte para Observación y Consulta Buró
         observacion = st.text_area("Observación")
 
-        col8, col9 = st.columns(2)
+        col8, col9,col10 = st.columns(3)
         with col8:
             consulta_buro = st.selectbox("Consulta Buró", ["SI", "NO"])
         
         with col9:
             facturo = st.selectbox("Facturó", ["SIN DEFINIR","SI", "NO"])
+        
+        with col10:
+            innecesario = st.selectbox("Solicitud innecesaria",["SI","NO"])
 
     
     # ✅ IMPORTANTE: Botón de envío dentro del `st.form()`
@@ -101,50 +104,56 @@ if pagina == "Bitácora de Actividades":
 
     # ========== GUARDAR REGISTRO ==========
     if submit_button:
-        conn = get_connection()
-        if conn:
-            try:
-                query = text("""
-                    INSERT INTO Bitacora_Credito (
-                        FECHA, TICKET, SUC, CLIENTE, VENTA, MOTO, 
-                        TIPO_DE_CLIENTE, NOTAS, LC_ACTUAL, LC_FINAL, 
-                        ENGANCHE_REQUERIDO, ENGANCHE_RECIBIDO, OBSERVACION, ESPECIAL,
-                        ARTICULO, EJECUTIVO, CEL_CTE, CONSULTA_BURO, Actualizacion, FACTURO
-                    ) 
-                    VALUES (:fecha, :ticket, :sucursal, :cliente, :venta, :moto, 
-                            :tipo_cliente, :notas, :lc_actual, :lc_final, 
-                            :enganche_requerido, :enganche_recibido, :observacion, :especial,
-                            :articulo, :ejecutivo, :cel_cte, :consulta_buro, :actualizacion, :facturo)
-                """)
+        ejecutivos_validos = ["Francis", "Alejandra", "Alma", "Francisco", "Mario", "Paul", "Victor", "Yadira", "Zulema", "Martin"]
 
-                conn.execute(query, {
-                    "fecha": fecha.strftime('%Y-%m-%d'),
-                    "ticket": ticket,
-                    "sucursal": sucursal,
-                    "cliente": cliente,
-                    "venta": venta,
-                    "moto": moto,
-                    "tipo_cliente": tipo_cliente,
-                    "notas": notas,
-                    "lc_actual": lc_actual,
-                    "lc_final": lc_final,
-                    "enganche_requerido": enganche_requerido,
-                    "enganche_recibido": enganche_recibido,
-                    "observacion": observacion,
-                    "especial": especial,
-                    "articulo": articulo,
-                    "ejecutivo": ejecutivo,
-                    "cel_cte": cel_cte,
-                    "consulta_buro": consulta_buro,
-                    "actualizacion":actualizacion,
-                    "facturo": facturo 
-                })
-                conn.commit()
-                st.success("Registro guardado exitosamente en la base de datos.")
-            except Exception as e:
-                st.error(f"Error al guardar el registro: {e}")
-            finally:
-                conn.close()
+        if ejecutivo not in ejecutivos_validos:
+            st.error("⚠️ El ejecutivo seleccionado no es válido. Por favor selecciona uno de la lista.")
+        else:
+            conn = get_connection()
+            if conn:
+                try:
+                    query = text("""
+                        INSERT INTO Bitacora_Credito (
+                            FECHA, TICKET, SUC, CLIENTE, VENTA, MOTO, 
+                            TIPO_DE_CLIENTE, NOTAS, LC_ACTUAL, LC_FINAL, 
+                            ENGANCHE_REQUERIDO, ENGANCHE_RECIBIDO, OBSERVACION, ESPECIAL,
+                            ARTICULO, EJECUTIVO, CEL_CTE, CONSULTA_BURO, Actualizacion, FACTURO, innecesario
+                        ) 
+                        VALUES (:fecha, :ticket, :sucursal, :cliente, :venta, :moto, 
+                                :tipo_cliente, :notas, :lc_actual, :lc_final, 
+                                :enganche_requerido, :enganche_recibido, :observacion, :especial,
+                                :articulo, :ejecutivo, :cel_cte, :consulta_buro, :actualizacion, :facturo,:innecesario)
+                    """)
+                    conn.execute(query, {
+                        "fecha": fecha.strftime('%Y-%m-%d'),
+                        "ticket": ticket,
+                        "sucursal": sucursal,
+                        "cliente": cliente,
+                        "venta": venta,
+                        "moto": moto,
+                        "tipo_cliente": tipo_cliente,
+                        "notas": notas,
+                        "lc_actual": lc_actual,
+                        "lc_final": lc_final,
+                        "enganche_requerido": enganche_requerido,
+                        "enganche_recibido": enganche_recibido,
+                        "observacion": observacion,
+                        "especial": especial,
+                        "articulo": articulo,
+                        "ejecutivo": ejecutivo,
+                        "cel_cte": cel_cte,
+                        "consulta_buro": consulta_buro,
+                        "actualizacion": actualizacion,
+                        "facturo": facturo,
+                        "innecesario": innecesario
+                    })
+                    conn.commit()
+                    st.success("✅ Registro guardado exitosamente en la base de datos.")
+                except Exception as e:
+                    st.error(f"❌ Error al guardar el registro: {e}")
+                finally:
+                    conn.close()
+
 
     # ========== VISUALIZADOR EN TIEMPO REAL ==========
     st.header("📊 Registros en tiempo real")
@@ -158,7 +167,7 @@ if pagina == "Bitácora de Actividades":
         filtro_rango = st.selectbox("Rango de fechas", ["Día específico", "Histórico", "Año completo", "Mes específico"], index=0)
 
     with col3:
-        filtro_ejecutivo = st.selectbox("Filtrar por Ejecutivo", ["Todos"] + ["Alejandra", "Alma", "Francisco", "Mario", "Paul", "Victor", "Yadira", "Zulema", "Martin"])
+        filtro_ejecutivo = st.selectbox("Filtrar por Ejecutivo", ["Todos"] + ["Alejandra", "Alma", "Francisco", "Mario", "Paul", "Victor", "Yadira", "Zulema", "Martin","Francis"])
 
     # Selección de fechas según el rango
     fecha_inicio, fecha_fin = None, None
@@ -288,12 +297,17 @@ elif pagina == "Indicadores":
     primer_dia_mes = hoy.replace(day=1).date()
     ultimo_dia_mes = (primer_dia_mes + relativedelta(months=1)) - pd.Timedelta(days=1)
 
+    # Ajustar el inicio si es marzo 2025
+    if primer_dia_mes.year == 2025 and primer_dia_mes.month == 3:
+        primer_dia_mes = datetime(2025, 3, 19).date()
+
+
     conn = get_connection()
     if conn:
         try:
             # Bitácora
             query_bitacora = text("""
-                SELECT CLIENTE, FECHA, SUC, VENTA, LC_ACTUAL, LC_FINAL, NOTAS, OBSERVACION, EJECUTIVO
+                SELECT CLIENTE, FECHA, SUC, VENTA, LC_ACTUAL, LC_FINAL, NOTAS, OBSERVACION, EJECUTIVO, Actualizacion
                 FROM Bitacora_Credito
                 WHERE CLIENTE IS NOT NULL
             """)
@@ -324,6 +338,13 @@ elif pagina == "Indicadores":
             """)
             clientes_registrados_mes = pd.read_sql(query_bitacora_mes, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})["conteo"][0]
 
+            # Prueba_Cliente
+            query_valor_cte = text("""
+                SELECT ID_CLIENTE, VALOR_CTE
+                FROM Prueba_Cliente
+            """)
+            valor_cte_df = pd.read_sql(query_valor_cte, conn)
+
             conn.close()
         except Exception as e:
             st.error(f"Error al obtener los datos: {e}")
@@ -331,6 +352,7 @@ elif pagina == "Indicadores":
             ventas = pd.DataFrame()
             df_recompra = pd.DataFrame()
             clientes_registrados_mes = 0
+            valor_cte_df = pd.DataFrame()
 
     if not bitacora.empty and not ventas.empty:
         bitacora["FECHA"] = pd.to_datetime(bitacora["FECHA"])
@@ -363,103 +385,211 @@ elif pagina == "Indicadores":
         total_recompra = df_recompra["FOLIO_POS"].nunique()
         porcentaje_bitacora_recompra = round((clientes_registrados_mes / total_recompra) * 100, 2) if total_recompra > 0 else 0
 
+        clientes_registrados_mes = bitacora[(bitacora["FECHA"] >= pd.to_datetime(primer_dia_mes)) & 
+                                    (bitacora["FECHA"] <= pd.to_datetime(ultimo_dia_mes))]
+        
+        clientes_con_compra_mes = compras_validas[compras_validas["CLIENTE"].isin(clientes_registrados_mes["CLIENTE"])]
+        clientes_sin_compra_mes = clientes_registrados_mes[~clientes_registrados_mes["CLIENTE"].isin(clientes_con_compra_mes["CLIENTE"])]
+
+
         # Layout
         col1, col2 = st.columns([1, 2])
 
         with col1:
             st.markdown(f"""
                 <div style="border: 2px solid #ff4b4b; border-radius: 10px; padding: 15px; background-color: #fff3f3;">
-                    <h4 style="margin: 0; color: #ff4b4b;">📌 % Clientes recompra procesados</h4>
+                    <h4 style="margin: 0; color: #ff4b4b;">📌 % Clientes recompra registrados</h4>
                     <p style="font-size: 28px; font-weight: bold; margin: 0; color: #000;">{porcentaje_bitacora_recompra}%</p>
                 </div>
             """, unsafe_allow_html=True)
 
             st.metric("📋 Total Facturas Recompra", total_recompra)
-            st.metric("📎 Clientes registrados", total_clientes)
-            st.metric("✅ Clientes con compra", clientes_con_compra)
-            st.metric("❌ Clientes sin compra", clientes_sin_compra)
+            st.metric("📎 Clientes registrados", clientes_registrados_mes["CLIENTE"].nunique())  # Solo clientes registrados en el mes en curso
+            st.metric("✅ Clientes con compra", clientes_con_compra_mes["CLIENTE"].nunique())  # Clientes con compra en el mes en curso
+            st.metric("❌ Clientes sin compra", clientes_sin_compra_mes["CLIENTE"].nunique())  # Clientes sin compra en el mes en curso
+
+            # === KPI: % Clientes sin compra respecto al total registrados ===
+            porcentaje_sin_compra = round((clientes_sin_compra_mes["CLIENTE"].nunique() / 
+                                        clientes_registrados_mes["CLIENTE"].nunique()) * 100, 2) if clientes_registrados_mes["CLIENTE"].nunique() > 0 else 0
+
+            st.markdown(f"""
+                <div style="border: 2px solid #2b7bba; border-radius: 10px; padding: 15px; background-color: #e6f2ff; margin-top: 15px;">
+                    <h4 style="margin: 0; color: #2b7bba;">🚫 % Clientes sin compra</h4>
+                    <p style="font-size: 28px; font-weight: bold; margin: 0; color: #000;">{porcentaje_sin_compra}%</p>
+                </div>
+            """, unsafe_allow_html=True)
+
 
         with col2:
             st.subheader("Distribución por ejecutivo (clientes sin compra)")
 
-            clientes_con_compra_set = set(compras_validas["CLIENTE"].unique())
-            sin_compra_df = bitacora[~bitacora["CLIENTE"].isin(clientes_con_compra_set)].copy()
+            # 1. Filtrar bitácora al mes actual
+            bitacora_mes = bitacora[
+                (bitacora["FECHA"] >= pd.to_datetime(primer_dia_mes)) & 
+                (bitacora["FECHA"] <= pd.to_datetime(ultimo_dia_mes))
+            ].copy()
 
-            resumen_ejecutivo = (
-                sin_compra_df.groupby("EJECUTIVO")["CLIENTE"]
-                .nunique()
-                .reset_index()
-                .rename(columns={"CLIENTE": "Clientes sin compra"})
+            # 2. Identificar clientes con compra válida
+            clientes_con_compra_set = set(compras_validas["CLIENTE"].unique())
+
+            # 3. Clientes sin compra (en base a bitácora del mes)
+            sin_compra_df = bitacora_mes[~bitacora_mes["CLIENTE"].isin(clientes_con_compra_set)]
+
+            # 4. Total de registros capturados por ejecutivo (del universo total en el mes)
+            total_registrados_por_ejecutivo = bitacora_mes.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Registros"})
+
+            # 5. Registros con VENTA = 'NO AUTORIZADA'
+            no_autorizada_df = bitacora_mes[bitacora_mes["VENTA"] == "NO AUTORIZADA"]
+            no_autorizada_por_ejecutivo = no_autorizada_df.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "No aut."})
+
+            # 6. Registros sin compra
+            sin_compra_por_ejecutivo = sin_compra_df.groupby("EJECUTIVO")["CLIENTE"].nunique().reset_index().rename(columns={"CLIENTE": "Sin compra"})
+
+            # 7. Unir todo en un resumen
+            resumen_ejecutivo = total_registrados_por_ejecutivo.merge(
+                no_autorizada_por_ejecutivo, on="EJECUTIVO", how="left"
+            ).merge(
+                sin_compra_por_ejecutivo, on="EJECUTIVO", how="left"
             )
 
-            total_sin_compra = resumen_ejecutivo["Clientes sin compra"].sum()
-            resumen_ejecutivo["% del total"] = (
-                resumen_ejecutivo["Clientes sin compra"] / total_sin_compra * 100
+            resumen_ejecutivo.fillna(0, inplace=True)
+
+            # 8. Calcular el porcentaje de clientes sin compra
+            resumen_ejecutivo["% Sin compra"] = (
+                resumen_ejecutivo["Sin compra"] / resumen_ejecutivo["Registros"] * 100
             ).round(2)
 
-            resumen_ejecutivo = resumen_ejecutivo.sort_values(by="% del total", ascending=False)
+            # 9. Reordenar columnas
+            resumen_ejecutivo = resumen_ejecutivo[["EJECUTIVO", "Registros", "No aut.", "Sin compra", "% Sin compra"]]
 
-            # Formatear el estilo con colores condicionales
-            styled_df = resumen_ejecutivo.style.format({
-                "% del total": "{:.2f}"
+            # 10. Mostrar tabla estilizada
+            styled_df = resumen_ejecutivo.sort_values(by="% Sin compra", ascending=False).style.format({
+                "% Sin compra": "{:.2f}",
+                "Registros": "{:.0f}",
+                "No aut.": "{:.0f}",
+                "Sin compra": "{:.0f}"
             }).background_gradient(
-                subset=["% del total"], cmap="RdYlGn_r"
+                subset=["% Sin compra"], cmap="RdYlGn_r"
             )
 
             st.dataframe(styled_df, use_container_width=True)
 
+            # 11. KPI de actualizaciones de cliente en el mes (color amarillo claro)
+            actualizaciones_cliente = bitacora_mes[bitacora_mes["Actualizacion"] == "SI"].shape[0]
+            visitas_domiciliarias = bitacora_mes[bitacora_mes["VENTA"] == "VISITA DOMICILIARIA"].shape[0]
+            clientes_rechazados = bitacora_mes[bitacora_mes["VENTA"] == "NO AUTORIZADA"].shape[0]
 
-        # Tabla de clientes sin compra con filtros
-        st.subheader("📋 Clientes sin compra")
+            kpi_col1, kpi_col2,kpi_col3 = st.columns(3)
 
-        # Filtros en una misma fila
-        col1, col2, col3 = st.columns(3)
+            with kpi_col1:
+                st.markdown(f"""
+                    <div style="margin-top: 20px; border: 2px solid #f7c948; border-radius: 10px; padding: 15px; background-color: #fff8e1;">
+                        <h4 style="margin: 0; color: #f7c948;">📎 Registros con actualización</h4>
+                        <p style="font-size: 24px; font-weight: bold; margin: 0; color: #000;">{actualizaciones_cliente}</p>
+                    </div>
+                """, unsafe_allow_html=True)
 
-        with col1:
-            filtro_rango = st.selectbox("Rango de fechas", ["Día específico", "Mes específico", "Año completo", "Histórico"])
+            with kpi_col2:
+                st.markdown(f"""
+                    <div style="margin-top: 20px; border: 2px solid #6fa24f; border-radius: 10px; padding: 15px; background-color: #edf7ed;">
+                        <h4 style="margin: 0; color: #6fa24f;">🏠 Registros con visita domiciliaria</h4>
+                        <p style="font-size: 24px; font-weight: bold; margin: 0; color: #000;">{visitas_domiciliarias}</p>
+                    </div>
+                """, unsafe_allow_html=True)
 
-        with col2:
-            filtro_ejecutivo = st.selectbox("Ejecutivo", ["Todos"] + sorted(sin_compra_df["EJECUTIVO"].dropna().unique()))
+            with kpi_col3:
+                st.markdown(f"""
+                    <div style="margin-top: 20px; border: 2px solid #f28b82; border-radius: 10px; padding: 15px; background-color: #fdecea;">
+                        <h4 style="margin: 0; color: #f28b82;">❌ Registros no autorizados</h4>
+                        <p style="font-size: 24px; font-weight: bold; margin: 0; color: #000;">{clientes_rechazados}</p>
+                    </div>
+                """, unsafe_allow_html=True)
 
-        # Determinar valores predeterminados
+
+
+
+        # Agregar VALOR_CTE a sin_compra_df
+        valor_cte_df["ID_CLIENTE"] = valor_cte_df["ID_CLIENTE"].astype(str).str.strip()
+        sin_compra_df["CLIENTE"] = sin_compra_df["CLIENTE"].astype(str).str.strip()
+        sin_compra_df = sin_compra_df.merge(valor_cte_df, left_on="CLIENTE", right_on="ID_CLIENTE", how="left")
+        sin_compra_df.drop(columns=["ID_CLIENTE"], inplace=True)
+
+        # ✅ Reemplazar nulos por "Nuevo"
+        sin_compra_df["VALOR_CTE"] = sin_compra_df["VALOR_CTE"].fillna("Nuevo")
+
+        # Calcular distribución porcentual de los tipos de VALOR_CTE
+        distribucion_valor_cte = (
+            sin_compra_df.groupby("VALOR_CTE")["CLIENTE"]
+            .nunique()
+            .reset_index()
+            .rename(columns={"CLIENTE": "Clientes sin compra","VALOR_CTE":"Clasificación de cliente"})
+        )
+
+        # Usar total_clientes (clientes registrados) como base para el porcentaje
+        distribucion_valor_cte["% No compra"] = round((distribucion_valor_cte["Clientes sin compra"] / total_clientes) * 100, 2)
+
+        # Ordenar de mayor a menor y mostrar con estilo rojo-verde
+        st.subheader("📊 Distribución de clasificación de cliente entre clientes sin compra")
+        styled_valor_cte = distribucion_valor_cte.sort_values(by="% No compra", ascending=False).style.format({
+            "% No compra": "{:.2f} %",
+            "Clientes sin compra": "{:.0f}"
+        }).background_gradient(subset=["% No compra"], cmap="RdYlGn_r")
+
+        st.dataframe(styled_valor_cte, use_container_width=True)
+
+
+    # Tabla de clientes sin compra con filtros
+    st.subheader("📋 Clientes sin compra")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        filtro_rango = st.selectbox("Rango de fechas", ["Día específico", "Mes específico", "Año completo", "Histórico"])
+
+    with col2:
+        filtro_ejecutivo = st.selectbox("Ejecutivo", ["Todos"] + sorted(sin_compra_df["EJECUTIVO"].dropna().unique()))
+
+    with col3:
         anio_default = fecha_actual.year
         mes_default = fecha_actual.month
         fecha_inicio, fecha_fin = None, None
 
-        with col3:
-            if filtro_rango == "Día específico":
-                fecha = st.date_input("Día", value=fecha_actual, key="fecha_dia")
-                fecha_inicio = fecha_fin = fecha
-            elif filtro_rango == "Mes específico":
-                anio = st.selectbox("Año", list(range(2022, anio_default + 1)), index=(anio_default - 2022), key="anio_mes")
-                mes = st.selectbox("Mes", list(range(1, 13)), index=(mes_default - 1), key="mes_mes")
-                fecha_inicio = datetime(anio, mes, 1).date()
-                fecha_fin = (datetime(anio + 1, 1, 1).date() - pd.Timedelta(days=1)) if mes == 12 else (datetime(anio, mes + 1, 1).date() - pd.Timedelta(days=1))
-            elif filtro_rango == "Año completo":
-                anio = st.selectbox("Año", list(range(2022, anio_default + 1)), index=(anio_default - 2022), key="anio_anual")
-                fecha_inicio = datetime(anio, 1, 1).date()
-                fecha_fin = datetime(anio, 12, 31).date()
-            elif filtro_rango == "Histórico":
-                fecha_inicio = datetime(2022, 1, 1).date()
-                fecha_fin = fecha_actual
+        if filtro_rango == "Día específico":
+            fecha = st.date_input("Día", value=fecha_actual, key="fecha_dia")
+            fecha_inicio = fecha_fin = fecha
+        elif filtro_rango == "Mes específico":
+            anio = st.selectbox("Año", list(range(2022, anio_default + 1)), index=(anio_default - 2022), key="anio_mes")
+            mes = st.selectbox("Mes", list(range(1, 13)), index=(mes_default - 1), key="mes_mes")
+            fecha_inicio = datetime(anio, mes, 1).date()
+            fecha_fin = (datetime(anio + 1, 1, 1).date() - pd.Timedelta(days=1)) if mes == 12 else (datetime(anio, mes + 1, 1).date() - pd.Timedelta(days=1))
+        elif filtro_rango == "Año completo":
+            anio = st.selectbox("Año", list(range(2022, anio_default + 1)), index=(anio_default - 2022), key="anio_anual")
+            fecha_inicio = datetime(anio, 1, 1).date()
+            fecha_fin = datetime(anio, 12, 31).date()
+        elif filtro_rango == "Histórico":
+            fecha_inicio = datetime(2022, 1, 1).date()
+            fecha_fin = fecha_actual
 
-        # Aplicar filtros al DataFrame
-        filtro_df = sin_compra_df.copy()
-        filtro_df = filtro_df[(filtro_df["FECHA"] >= pd.to_datetime(fecha_inicio)) & (filtro_df["FECHA"] <= pd.to_datetime(fecha_fin))]
+    with col4:
+        cc_opciones = ["Todos"] + sorted(sin_compra_df["VALOR_CTE"].dropna().unique())
+        filtro_cc = st.selectbox("Clasificacion de Cliente", cc_opciones)
 
-        if filtro_ejecutivo != "Todos":
-            filtro_df = filtro_df[filtro_df["EJECUTIVO"] == filtro_ejecutivo]
+    # Aplicar filtros
+    filtro_df = sin_compra_df.copy()
+    filtro_df = filtro_df[(filtro_df["FECHA"] >= pd.to_datetime(fecha_inicio)) & (filtro_df["FECHA"] <= pd.to_datetime(fecha_fin))]
 
-        # Mostrar tabla con formato de fecha
-        columnas_mostrar = ["FECHA", "CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "NOTAS", "OBSERVACION"]
-        df_display = filtro_df[columnas_mostrar].copy()
-        df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")
+    if filtro_ejecutivo != "Todos":
+        filtro_df = filtro_df[filtro_df["EJECUTIVO"] == filtro_ejecutivo]
 
-        st.dataframe(df_display.reset_index(drop=True))
+    if filtro_cc != "Todos":
+        filtro_df = filtro_df[filtro_df["VALOR_CTE"] == filtro_cc]
 
+    # Renombrar columna
+    filtro_df = filtro_df.rename(columns={"VALOR_CTE": "CC"})
 
+    columnas_mostrar = ["FECHA", "CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "CC", "NOTAS", "OBSERVACION"]
+    df_display = filtro_df[columnas_mostrar].copy()
+    df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")
 
-
-    else:
-        st.warning("No se pudo cargar la información de Bitácora o RPVENTA.")
+    st.dataframe(df_display.reset_index(drop=True))
 
