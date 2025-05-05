@@ -245,7 +245,7 @@ if pagina == "Bitácora de Actividades":
 
             columnas_editables = ["TICKET", "CLIENTE", "FECHA", "SUC", "VENTA", "MOTO", "LC_ACTUAL", "LC_FINAL",
                                 "ENGANCHE_REQUERIDO", "ENGANCHE_RECIBIDO", "OBSERVACION", "ESPECIAL", "ARTICULO",
-                                "EJECUTIVO", "CEL_CTE", "CONSULTA_BURO", "Actualizacion", "FACTURO"]
+                                "EJECUTIVO", "CEL_CTE", "CONSULTA_BURO", "Actualizacion", "FACTURO","innecesario"]
 
             campo_seleccionado = st.selectbox("Campo a editar:", columnas_editables)
             nuevo_valor = st.text_input(f"Nuevo valor para {campo_seleccionado}:")
@@ -593,5 +593,8 @@ elif pagina == "Indicadores":
     df_display = filtro_df[columnas_mostrar].copy()
     df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")
 
+    df_display = df_display.fillna("")  # reemplaza None/NaN por vacío
     st.dataframe(df_display.reset_index(drop=True))
+
+
 
