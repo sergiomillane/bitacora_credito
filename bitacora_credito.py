@@ -159,7 +159,7 @@ if pagina == "Bitácora de Actividades":
     st.header("📊 Registros en tiempo real")
 
     # Filtros
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         filtro_cliente = st.text_input("Filtrar por ID Cliente", "")
 
@@ -169,6 +169,8 @@ if pagina == "Bitácora de Actividades":
     with col3:
         filtro_ejecutivo = st.selectbox("Filtrar por Ejecutivo", ["Todos"] + ["Alejandra", "Alma", "Francisco", "Mario", "Paul", "Victor", "Yadira", "Zulema", "Martin","Francis"])
 
+    with col4:
+        filtro_innecesario = st.selectbox("Filtrar por innecesario",["Si","No"])
     # Selección de fechas según el rango
     fecha_inicio, fecha_fin = None, None
 
