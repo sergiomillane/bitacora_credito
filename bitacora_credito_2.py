@@ -613,9 +613,7 @@ elif pagina == "Mensajes Sms":
         st.session_state["clientes_filtrados"] = None
 
     # ========== FORMULARIO DE FILTRO ==========
-    
-    st.subheader("⚠️ Siempre usar el boton de filtrar para actualizar la informacion ⚠️")
-    st.subheader("📋 Filtros de clientes ")
+    st.subheader("📋 Filtros de clientes")
     venta_tipo = st.selectbox("Tipo de Venta", ["AUTORIZADA", "NO AUTORIZADA", "AUTORIZADA PARCIAL", "VISITA DOMICILIARIA"])
     facturado   = st.selectbox("¿Ya facturado?",      ["NO", "SI"])
 
