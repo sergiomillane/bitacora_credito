@@ -382,12 +382,33 @@ elif pagina == "Indicadores":
         total_recompra = df_recompra["FOLIO_POS"].nunique()
         porcentaje_bitacora_recompra = round((clientes_registrados_mes / total_recompra) * 100, 2) if total_recompra > 0 else 0
 
-        clientes_registrados_mes = bitacora[(bitacora["FECHA"] >= pd.to_datetime(primer_dia_mes)) & 
-                                    (bitacora["FECHA"] <= pd.to_datetime(ultimo_dia_mes))]
-        
-        clientes_con_compra_mes = compras_validas[compras_validas["CLIENTE"].isin(clientes_registrados_mes["CLIENTE"])]
-        clientes_sin_compra_mes = clientes_registrados_mes[~clientes_registrados_mes["CLIENTE"].isin(clientes_con_compra_mes["CLIENTE"])]
+        # Filtrar clientes registrados en el mes
+        clientes_registrados_mes = bitacora[
+            (bitacora["FECHA"] >= pd.to_datetime(primer_dia_mes)) & 
+            (bitacora["FECHA"] <= pd.to_datetime(ultimo_dia_mes))
+        ]
 
+        # Filtrar solo AUTORIZADOS
+        clientes_autorizados_mes = clientes_registrados_mes[
+            bitacora["VENTA"].str.strip().str.upper() == "AUTORIZADA"
+        ]
+
+        # Clientes con compra (entre los autorizados)
+        clientes_con_compra_mes = compras_validas[
+            compras_validas["CLIENTE"].isin(clientes_autorizados_mes["CLIENTE"])
+        ]
+
+        # Clientes sin compra (autorizados sin match en ventas)
+        clientes_sin_compra_mes = clientes_autorizados_mes[
+            ~clientes_autorizados_mes["CLIENTE"].isin(clientes_con_compra_mes["CLIENTE"])
+        ]
+
+        # Cálculos generales
+        total_clientes = bitacora["CLIENTE"].nunique()
+        clientes_con_compra = compras_validas["CLIENTE"].nunique()
+        clientes_sin_compra = total_clientes - clientes_con_compra
+        total_recompra = df_recompra["FOLIO_POS"].nunique()
+        porcentaje_bitacora_recompra = round((clientes_autorizados_mes["CLIENTE"].nunique() / total_recompra) * 100, 2) if total_recompra > 0 else 0
 
         # Layout
         col1, col2 = st.columns([1, 2])
@@ -401,13 +422,13 @@ elif pagina == "Indicadores":
             """, unsafe_allow_html=True)
 
             st.metric("📋 Total Facturas Recompra", total_recompra)
-            st.metric("📎 Clientes registrados", clientes_registrados_mes["CLIENTE"].nunique())  # Solo clientes registrados en el mes en curso
-            st.metric("✅ Clientes con compra", clientes_con_compra_mes["CLIENTE"].nunique())  # Clientes con compra en el mes en curso
-            st.metric("❌ Clientes sin compra", clientes_sin_compra_mes["CLIENTE"].nunique())  # Clientes sin compra en el mes en curso
+            st.metric("📎 Clientes autorizados registrados", clientes_autorizados_mes["CLIENTE"].nunique())
+            st.metric("✅ Clientes con compra", clientes_con_compra_mes["CLIENTE"].nunique())
+            st.metric("❌ Clientes sin compra", clientes_sin_compra_mes["CLIENTE"].nunique())
 
-            # === KPI: % Clientes sin compra respecto al total registrados ===
-            porcentaje_sin_compra = round((clientes_sin_compra_mes["CLIENTE"].nunique() / 
-                                        clientes_registrados_mes["CLIENTE"].nunique()) * 100, 2) if clientes_registrados_mes["CLIENTE"].nunique() > 0 else 0
+            porcentaje_sin_compra = round((
+                clientes_sin_compra_mes["CLIENTE"].nunique() / clientes_autorizados_mes["CLIENTE"].nunique()
+            ) * 100, 2) if clientes_autorizados_mes["CLIENTE"].nunique() > 0 else 0
 
             st.markdown(f"""
                 <div style="border: 2px solid #2b7bba; border-radius: 10px; padding: 15px; background-color: #e6f2ff; margin-top: 15px;">
@@ -415,6 +436,7 @@ elif pagina == "Indicadores":
                     <p style="font-size: 28px; font-weight: bold; margin: 0; color: #000;">{porcentaje_sin_compra}%</p>
                 </div>
             """, unsafe_allow_html=True)
+
 
 
         with col2:
