@@ -89,15 +89,12 @@ if pagina == "Bitácora de Actividades":
         # Fila aparte para Observación y Consulta Buró
         observacion = st.text_area("Observación")
 
-        col8, col9,col10 = st.columns(3)
+        col8, col9 = st.columns(2)
         with col8:
             consulta_buro = st.selectbox("Consulta Buró", ["SI", "NO"])
         
         with col9:
             facturo = st.selectbox("Facturó", ["SIN DEFINIR","SI", "NO"])
-        
-        with col10:
-            innecesario = st.selectbox("Solicitud innecesaria",["SI","NO"])
 
     
     # ✅ IMPORTANTE: Botón de envío dentro del `st.form()`
@@ -118,12 +115,12 @@ if pagina == "Bitácora de Actividades":
                             FECHA, TICKET, SUC, CLIENTE, VENTA, MOTO, 
                             TIPO_DE_CLIENTE, NOTAS, LC_ACTUAL, LC_FINAL, 
                             ENGANCHE_REQUERIDO, ENGANCHE_RECIBIDO, OBSERVACION, ESPECIAL,
-                            ARTICULO, EJECUTIVO, CEL_CTE, CONSULTA_BURO, Actualizacion, FACTURO, innecesario
+                            ARTICULO, EJECUTIVO, CEL_CTE, CONSULTA_BURO, Actualizacion, FACTURO
                         ) 
                         VALUES (:fecha, :ticket, :sucursal, :cliente, :venta, :moto, 
                                 :tipo_cliente, :notas, :lc_actual, :lc_final, 
                                 :enganche_requerido, :enganche_recibido, :observacion, :especial,
-                                :articulo, :ejecutivo, :cel_cte, :consulta_buro, :actualizacion, :facturo,:innecesario)
+                                :articulo, :ejecutivo, :cel_cte, :consulta_buro, :actualizacion, :facturo)
                     """)
                     conn.execute(query, {
                         "fecha": fecha.strftime('%Y-%m-%d'),
@@ -145,8 +142,7 @@ if pagina == "Bitácora de Actividades":
                         "cel_cte": cel_cte,
                         "consulta_buro": consulta_buro,
                         "actualizacion": actualizacion,
-                        "facturo": facturo,
-                        "innecesario": innecesario
+                        "facturo": facturo
                     })
                     conn.commit()
                     st.success("✅ Registro guardado exitosamente en la base de datos.")
@@ -160,7 +156,7 @@ if pagina == "Bitácora de Actividades":
     st.header("📊 Registros en tiempo real")
 
     # Filtros
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
     with col1:
         filtro_cliente = st.text_input("Filtrar por ID Cliente", "")
 
@@ -170,8 +166,6 @@ if pagina == "Bitácora de Actividades":
     with col3:
         filtro_ejecutivo = st.selectbox("Filtrar por Ejecutivo", ["Todos"] + ["Alejandra", "Alma", "Francisco", "Mario", "Paul", "Victor", "Yadira", "Zulema", "Martin","Francis"])
 
-    with col4:
-        filtro_innecesario = st.selectbox("Filtrar por innecesario",["Si","No"])
     # Selección de fechas según el rango
     fecha_inicio, fecha_fin = None, None
 
@@ -246,7 +240,7 @@ if pagina == "Bitácora de Actividades":
 
             columnas_editables = ["TICKET", "CLIENTE", "FECHA", "SUC", "VENTA", "MOTO", "LC_ACTUAL", "LC_FINAL",
                                 "ENGANCHE_REQUERIDO", "ENGANCHE_RECIBIDO", "OBSERVACION", "ESPECIAL", "ARTICULO",
-                                "EJECUTIVO", "CEL_CTE", "CONSULTA_BURO", "Actualizacion", "FACTURO","innecesario"]
+                                "EJECUTIVO", "CEL_CTE", "CONSULTA_BURO", "Actualizacion", "FACTURO"]
 
             campo_seleccionado = st.selectbox("Campo a editar:", columnas_editables)
             nuevo_valor = st.text_input(f"Nuevo valor para {campo_seleccionado}:")
@@ -310,7 +304,7 @@ elif pagina == "Indicadores":
         try:
             # Bitácora
             query_bitacora = text("""
-                SELECT CLIENTE, FECHA, SUC, VENTA, LC_ACTUAL, LC_FINAL, NOTAS, OBSERVACION, EJECUTIVO, Actualizacion, innecesario
+                SELECT CLIENTE, FECHA, SUC, VENTA, LC_ACTUAL, LC_FINAL, NOTAS, OBSERVACION, EJECUTIVO, Actualizacion
                 FROM Bitacora_Credito
                 WHERE CLIENTE IS NOT NULL
             """)
@@ -391,11 +385,12 @@ elif pagina == "Indicadores":
         clientes_registrados_mes = bitacora[(bitacora["FECHA"] >= pd.to_datetime(primer_dia_mes)) & 
                                     (bitacora["FECHA"] <= pd.to_datetime(ultimo_dia_mes))]
         
-        clientes_innecesarios = clientes_registrados_mes[clientes_registrados_mes["innecesario"] == "SI"]["CLIENTE"].nunique()
-
-        
         clientes_con_compra_mes = compras_validas[compras_validas["CLIENTE"].isin(clientes_registrados_mes["CLIENTE"])]
-        clientes_sin_compra_mes = clientes_registrados_mes[~clientes_registrados_mes["CLIENTE"].isin(clientes_con_compra_mes["CLIENTE"])]
+        clientes_autorizados_mes = clientes_registrados_mes[clientes_registrados_mes["VENTA"] == "AUTORIZADO"]
+
+        clientes_sin_compra_mes = clientes_autorizados_mes[~clientes_autorizados_mes["CLIENTE"].isin(clientes_con_compra_mes["CLIENTE"])
+]
+
 
 
         # Layout
@@ -413,12 +408,11 @@ elif pagina == "Indicadores":
             st.metric("📎 Clientes registrados", clientes_registrados_mes["CLIENTE"].nunique())  # Solo clientes registrados en el mes en curso
             st.metric("✅ Clientes con compra", clientes_con_compra_mes["CLIENTE"].nunique())  # Clientes con compra en el mes en curso
             st.metric("❌ Clientes sin compra", clientes_sin_compra_mes["CLIENTE"].nunique())  # Clientes sin compra en el mes en curso
-            st.metric("🟡 Solicitudes innecesarias", clientes_innecesarios)
-
 
             # === KPI: % Clientes sin compra respecto al total registrados ===
             porcentaje_sin_compra = round((clientes_sin_compra_mes["CLIENTE"].nunique() / 
-                                        clientes_registrados_mes["CLIENTE"].nunique()) * 100, 2) if clientes_registrados_mes["CLIENTE"].nunique() > 0 else 0
+                               clientes_autorizados_mes["CLIENTE"].nunique()) * 100, 2) if clientes_autorizados_mes["CLIENTE"].nunique() > 0 else 0
+
 
             st.markdown(f"""
                 <div style="border: 2px solid #2b7bba; border-radius: 10px; padding: 15px; background-color: #e6f2ff; margin-top: 15px;">
@@ -599,9 +593,7 @@ elif pagina == "Indicadores":
     df_display = filtro_df[columnas_mostrar].copy()
     df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")
 
-    st.write(df_display.reset_index(drop=True))
-
-
+    st.dataframe(df_display.reset_index(drop=True))
 
 
 
@@ -634,10 +626,18 @@ elif pagina == "Mensajes Sms":
 
     if st.button("🔍 Buscar clientes"):
         engine = get_connection()  # debe ser un SQLAlchemy Engine
+        
+        ## si quieres depurar agrega un top(1) y deja fijo tu numero  de telefono  en el max(bc.CEL_CTE) con comilla simple  o deja en blanco
         query = """
            SELECT 
-                BC.CLIENTE AS CLIENTE, 
-                MAX(CASE WHEN r.NOMBRECLIENTE IS NOT NULL THEN r.NOMBRECLIENTE ELSE '' END) AS NOMBRE_CLIENTE, 
+                 BC.CLIENTE AS CLIENTE, 
+                MAX(
+				CASE 
+					WHEN r.NOMBRECLIENTE IS NOT NULL THEN r.NOMBRECLIENTE 
+					WHEN APROB.solicitante IS NOT NULL THEN APROB.solicitante
+					ELSE
+					'' END) 
+					AS NOMBRE_CLIENTE, 
                 MAX(BC.FECHA)            AS Fecha_bitacora, 
                 MAX(BC.CEL_CTE)          AS TELEFONO,
                 MAX(t.Tel1)              AS Tel1, 
@@ -651,6 +651,7 @@ elif pagina == "Mensajes Sms":
             FROM Bitacora_Credito BC
             LEFT JOIN Telefonos_crm T ON BC.CLIENTE = T.SapIdCliente  
             LEFT JOIN RPVENTA r   ON BC.CLIENTE = r.CLIENTE
+            LEFT JOIN historico_ctes_aprob_sql APROB ON APROB.Cliente = BC.CLIENTE
             WHERE 
                 MONTH(BC.FECHA) = MONTH(GETDATE())  
                 AND YEAR(BC.FECHA)  = YEAR(GETDATE())   
@@ -708,7 +709,7 @@ elif pagina == "Mensajes Sms":
                     if not telefono:
                         status = "⚠️ Sin teléfono"
                         errores += 1
-                        st.warning(f"⚠️ Cliente {cliente_id} no tiene teléfono disponible.")
+                       # st.warning(f"⚠️ Cliente {cliente_id} no tiene teléfono disponible.")
                     else:
                         # Formatear teléfono
                         telefono_formato = f"521{telefono}" if not telefono.startswith("52") else telefono
@@ -721,7 +722,7 @@ elif pagina == "Mensajes Sms":
                         if resp.status_code == 200:
                             enviados += 1
                             status = "✅ Enviado"
-                            st.success(f"✅ SMS enviado a {telefono_formato}")
+                           # st.success(f"✅ SMS enviado a {telefono_formato}")
                         else:
                             errores += 1
                             status = f"❌ Error {resp.status_code}"
