@@ -298,9 +298,11 @@ elif pagina == "Indicadores":
     if primer_dia_mes.year == 2025 and primer_dia_mes.month == 3:
         primer_dia_mes = datetime(2025, 3, 19).date()
 
+
     conn = get_connection()
     if conn:
         try:
+            # Bitácora
             query_bitacora = text("""
                 SELECT CLIENTE, FECHA, SUC, VENTA, LC_ACTUAL, LC_FINAL, NOTAS, OBSERVACION, EJECUTIVO, Actualizacion
                 FROM Bitacora_Credito
@@ -308,6 +310,7 @@ elif pagina == "Indicadores":
             """)
             bitacora = pd.read_sql(query_bitacora, conn)
 
+            # RPVENTA
             query_rpventa = text("""
                 SELECT CLIENTE, FECHA AS FECHA_VENTA, FOLIO_POS, TOTALFACTURA
                 FROM RPVENTA
@@ -315,6 +318,7 @@ elif pagina == "Indicadores":
             """)
             ventas = pd.read_sql(query_rpventa, conn)
 
+            # Recompra del mes (por FECHA)
             query_recompra = text("""
                 SELECT DISTINCT FOLIO_POS
                 FROM SeguimientoActivacion
@@ -323,6 +327,15 @@ elif pagina == "Indicadores":
             """)
             df_recompra = pd.read_sql(query_recompra, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})
 
+            # Clientes únicos en Bitácora en el mes
+            query_bitacora_mes = text("""
+                SELECT COUNT(DISTINCT CLIENTE) as conteo
+                FROM Bitacora_Credito
+                WHERE FECHA BETWEEN :inicio AND :fin
+            """)
+            clientes_registrados_mes = pd.read_sql(query_bitacora_mes, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})["conteo"][0]
+
+            # Prueba_Cliente
             query_valor_cte = text("""
                 SELECT ID_CLIENTE, VALOR_CTE
                 FROM Prueba_Cliente
@@ -335,6 +348,7 @@ elif pagina == "Indicadores":
             bitacora = pd.DataFrame()
             ventas = pd.DataFrame()
             df_recompra = pd.DataFrame()
+            clientes_registrados_mes = 0
             valor_cte_df = pd.DataFrame()
 
     if not bitacora.empty and not ventas.empty:
@@ -347,25 +361,35 @@ elif pagina == "Indicadores":
         merged["DIAS_PARA_COMPRA"] = (merged["FECHA_VENTA"] - merged["FECHA"]).dt.days
         compras_validas = merged[merged["DIAS_PARA_COMPRA"] >= 0].copy()
 
-        clientes_registrados_mes = bitacora[
-            (bitacora["FECHA"] >= pd.to_datetime(primer_dia_mes)) & 
-            (bitacora["FECHA"] <= pd.to_datetime(ultimo_dia_mes))
-        ]
+        resumen = (
+            compras_validas
+            .groupby(["CLIENTE", "FOLIO_POS", "FECHA_VENTA"], as_index=False)
+            .agg({
+                "TOTALFACTURA": "sum",
+                "DIAS_PARA_COMPRA": "min",
+                "FOLIO_POS": "count"
+            })
+            .rename(columns={
+                "TOTALFACTURA": "TOTAL_COMPRA",
+                "FOLIO_POS": "#Productos",
+                "FECHA_VENTA": "Fecha de Compra"
+            })
+        )
 
-        clientes_autorizados_mes = clientes_registrados_mes[clientes_registrados_mes["VENTA"] == "AUTORIZADO"]
-
-        clientes_con_compra_mes = compras_validas[
-            compras_validas["CLIENTE"].isin(clientes_autorizados_mes["CLIENTE"])
-        ]
-
-        clientes_sin_compra_mes = clientes_autorizados_mes[
-            ~clientes_autorizados_mes["CLIENTE"].isin(clientes_con_compra_mes["CLIENTE"])
-        ]
-
-        total_clientes = clientes_registrados_mes["CLIENTE"].nunique()
+        total_clientes = bitacora["CLIENTE"].nunique()
+        clientes_con_compra = compras_validas["CLIENTE"].nunique()
+        clientes_sin_compra = total_clientes - clientes_con_compra
         total_recompra = df_recompra["FOLIO_POS"].nunique()
-        porcentaje_bitacora_recompra = round((clientes_autorizados_mes["CLIENTE"].nunique() / total_recompra) * 100, 2) if total_recompra > 0 else 0
+        porcentaje_bitacora_recompra = round((clientes_registrados_mes / total_recompra) * 100, 2) if total_recompra > 0 else 0
 
+        clientes_registrados_mes = bitacora[(bitacora["FECHA"] >= pd.to_datetime(primer_dia_mes)) & 
+                                    (bitacora["FECHA"] <= pd.to_datetime(ultimo_dia_mes))]
+        
+        clientes_con_compra_mes = compras_validas[compras_validas["CLIENTE"].isin(clientes_registrados_mes["CLIENTE"])]
+        clientes_sin_compra_mes = clientes_registrados_mes[~clientes_registrados_mes["CLIENTE"].isin(clientes_con_compra_mes["CLIENTE"])]
+
+
+        # Layout
         col1, col2 = st.columns([1, 2])
 
         with col1:
@@ -377,12 +401,13 @@ elif pagina == "Indicadores":
             """, unsafe_allow_html=True)
 
             st.metric("📋 Total Facturas Recompra", total_recompra)
-            st.metric("📎 Clientes autorizados", clientes_autorizados_mes["CLIENTE"].nunique())
-            st.metric("✅ Clientes con compra", clientes_con_compra_mes["CLIENTE"].nunique())
-            st.metric("❌ Clientes sin compra", clientes_sin_compra_mes["CLIENTE"].nunique())
+            st.metric("📎 Clientes registrados", clientes_registrados_mes["CLIENTE"].nunique())  # Solo clientes registrados en el mes en curso
+            st.metric("✅ Clientes con compra", clientes_con_compra_mes["CLIENTE"].nunique())  # Clientes con compra en el mes en curso
+            st.metric("❌ Clientes sin compra", clientes_sin_compra_mes["CLIENTE"].nunique())  # Clientes sin compra en el mes en curso
 
+            # === KPI: % Clientes sin compra respecto al total registrados ===
             porcentaje_sin_compra = round((clientes_sin_compra_mes["CLIENTE"].nunique() / 
-                                         clientes_autorizados_mes["CLIENTE"].nunique()) * 100, 2) if clientes_autorizados_mes["CLIENTE"].nunique() > 0 else 0
+                                        clientes_registrados_mes["CLIENTE"].nunique()) * 100, 2) if clientes_registrados_mes["CLIENTE"].nunique() > 0 else 0
 
             st.markdown(f"""
                 <div style="border: 2px solid #2b7bba; border-radius: 10px; padding: 15px; background-color: #e6f2ff; margin-top: 15px;">
@@ -390,9 +415,6 @@ elif pagina == "Indicadores":
                     <p style="font-size: 28px; font-weight: bold; margin: 0; color: #000;">{porcentaje_sin_compra}%</p>
                 </div>
             """, unsafe_allow_html=True)
-
-        # Resto del código visual y resumen por ejecutivo, si aplica, seguiría abajo...
-
 
 
         with col2:
@@ -567,8 +589,6 @@ elif pagina == "Indicadores":
     df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")
 
     st.dataframe(df_display.reset_index(drop=True))
-
-
 
 
 
