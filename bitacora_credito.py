@@ -304,7 +304,7 @@ elif pagina == "Indicadores":
         try:
             # Bitácora
             query_bitacora = text("""
-                SELECT CLIENTE, FECHA, SUC, VENTA, LC_ACTUAL, LC_FINAL, NOTAS, OBSERVACION, EJECUTIVO, Actualizacion
+                SELECT CLIENTE, FECHA, SUC, VENTA, LC_ACTUAL, LC_FINAL, NOTAS, OBSERVACION, EJECUTIVO, Actualizacion, innecesario
                 FROM Bitacora_Credito
                 WHERE CLIENTE IS NOT NULL
             """)
@@ -388,6 +388,7 @@ elif pagina == "Indicadores":
             (bitacora["FECHA"] <= pd.to_datetime(ultimo_dia_mes))
         ]
 
+        clientes_innecesarios = clientes_registrados_mes[clientes_registrados_mes["innecesario"] == "SI"]["CLIENTE"].nunique()
         # Filtrar solo AUTORIZADOS
         clientes_autorizados_mes = clientes_registrados_mes[
             bitacora["VENTA"].str.strip().str.upper() == "AUTORIZADA"
@@ -425,6 +426,7 @@ elif pagina == "Indicadores":
             st.metric("📎 Clientes autorizados registrados", clientes_autorizados_mes["CLIENTE"].nunique())
             st.metric("✅ Clientes con compra", clientes_con_compra_mes["CLIENTE"].nunique())
             st.metric("❌ Clientes sin compra", clientes_sin_compra_mes["CLIENTE"].nunique())
+            st.metric("🟡 Solicitudes innecesarias", clientes_innecesarios)
 
             porcentaje_sin_compra = round((
                 clientes_sin_compra_mes["CLIENTE"].nunique() / clientes_autorizados_mes["CLIENTE"].nunique()
