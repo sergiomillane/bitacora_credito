@@ -89,12 +89,15 @@ if pagina == "Bitácora de Actividades":
         # Fila aparte para Observación y Consulta Buró
         observacion = st.text_area("Observación")
 
-        col8, col9 = st.columns(2)
+        col8, col9,col10 = st.columns(3)
         with col8:
             consulta_buro = st.selectbox("Consulta Buró", ["SI", "NO"])
         
         with col9:
             facturo = st.selectbox("Facturó", ["SIN DEFINIR","SI", "NO"])
+
+        with col10:
+            innecesario = st.selectbox("Solicitud innecesaria",["SI","NO"])
 
     
     # ✅ IMPORTANTE: Botón de envío dentro del `st.form()`
@@ -115,12 +118,12 @@ if pagina == "Bitácora de Actividades":
                             FECHA, TICKET, SUC, CLIENTE, VENTA, MOTO, 
                             TIPO_DE_CLIENTE, NOTAS, LC_ACTUAL, LC_FINAL, 
                             ENGANCHE_REQUERIDO, ENGANCHE_RECIBIDO, OBSERVACION, ESPECIAL,
-                            ARTICULO, EJECUTIVO, CEL_CTE, CONSULTA_BURO, Actualizacion, FACTURO
+                            ARTICULO, EJECUTIVO, CEL_CTE, CONSULTA_BURO, Actualizacion, FACTURO,innecesario
                         ) 
                         VALUES (:fecha, :ticket, :sucursal, :cliente, :venta, :moto, 
                                 :tipo_cliente, :notas, :lc_actual, :lc_final, 
                                 :enganche_requerido, :enganche_recibido, :observacion, :especial,
-                                :articulo, :ejecutivo, :cel_cte, :consulta_buro, :actualizacion, :facturo)
+                                :articulo, :ejecutivo, :cel_cte, :consulta_buro, :actualizacion, :facturo, :innecesario)
                     """)
                     conn.execute(query, {
                         "fecha": fecha.strftime('%Y-%m-%d'),
@@ -142,7 +145,8 @@ if pagina == "Bitácora de Actividades":
                         "cel_cte": cel_cte,
                         "consulta_buro": consulta_buro,
                         "actualizacion": actualizacion,
-                        "facturo": facturo
+                        "facturo": facturo,
+                        "innecesario": innecesario
                     })
                     conn.commit()
                     st.success("✅ Registro guardado exitosamente en la base de datos.")
