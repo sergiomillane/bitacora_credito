@@ -487,15 +487,26 @@ elif pagina == "Indicadores":
             # 9. Reordenar columnas
             resumen_ejecutivo = resumen_ejecutivo[["EJECUTIVO", "Registros", "No aut.", "Sin compra", "% Sin compra"]]
 
+            # 10. Función para aplicar colores basados en porcentaje
+            def color_percentage(val):
+                if pd.isna(val):
+                    return ''
+                if val >= 75:
+                    return 'background-color: #ffcccc; color: black'  # Rojo claro con texto negro
+                elif val >= 50:
+                    return 'background-color: #ffe6cc; color: black'  # Naranja claro con texto negro
+                elif val >= 25:
+                    return 'background-color: #ffffcc; color: black'  # Amarillo claro con texto negro
+                else:
+                    return 'background-color: #ccffcc; color: black'  # Verde claro con texto negro
+
             # 10. Mostrar tabla estilizada
             styled_df = resumen_ejecutivo.sort_values(by="% Sin compra", ascending=False).style.format({
                 "% Sin compra": "{:.2f}",
                 "Registros": "{:.0f}",
                 "No aut.": "{:.0f}",
                 "Sin compra": "{:.0f}"
-            }).background_gradient(
-                subset=["% Sin compra"], cmap="RdYlGn_r"
-            )
+            }).applymap(color_percentage, subset=["% Sin compra"])
 
             st.dataframe(styled_df, use_container_width=True)
 
@@ -553,15 +564,111 @@ elif pagina == "Indicadores":
         # Usar total_clientes (clientes registrados) como base para el porcentaje
         distribucion_valor_cte["% No compra"] = round((distribucion_valor_cte["Clientes sin compra"] / total_clientes) * 100, 2)
 
-        # Ordenar de mayor a menor y mostrar con estilo rojo-verde
+        # Función para aplicar colores a porcentajes
+        def color_no_compra(val):
+            if pd.isna(val):
+                return ''
+            if val >= 15:
+                return 'background-color: #ffcccc; color: black'  # Rojo claro con texto negro
+            elif val >= 10:
+                return 'background-color: #ffe6cc; color: black'  # Naranja claro con texto negro
+            elif val >= 5:
+                return 'background-color: #ffffcc; color: black'  # Amarillo claro con texto negro
+            else:
+                return 'background-color: #ccffcc; color: black'  # Verde claro con texto negro
+
+        # Ordenar de mayor a menor y mostrar con estilo
         st.subheader("📊 Distribución de clasificación de cliente entre clientes sin compra")
         styled_valor_cte = distribucion_valor_cte.sort_values(by="% No compra", ascending=False).style.format({
             "% No compra": "{:.2f} %",
             "Clientes sin compra": "{:.0f}"
-        }).background_gradient(subset=["% No compra"], cmap="RdYlGn_r")
+        }).applymap(color_no_compra, subset=["% No compra"])
 
         st.dataframe(styled_valor_cte, use_container_width=True)
 
+        # Tabla de solicitudes innecesarias por sucursal
+        st.subheader("🟡 Solicitudes innecesarias por Sucursal")
+        
+        # Filtrar registros innecesarios del mes
+        solicitudes_innecesarias = clientes_registrados_mes[
+            clientes_registrados_mes["innecesario"] == "SI"
+        ].copy()
+        
+        if not solicitudes_innecesarias.empty:
+            # Crear tabla agrupada por sucursal
+            tabla_innecesarias = (
+                solicitudes_innecesarias
+                .groupby("SUC")
+                .agg({
+                    "CLIENTE": "nunique"
+                })
+                .reset_index()
+                .rename(columns={
+                    "SUC": "Sucursal",
+                    "CLIENTE": "Solicitudes innecesarias"
+                })
+            )
+            
+            # Calcular porcentaje respecto al total de solicitudes innecesarias
+            total_innecesarias = tabla_innecesarias["Solicitudes innecesarias"].sum()
+            tabla_innecesarias["% del total"] = (
+                tabla_innecesarias["Solicitudes innecesarias"] / total_innecesarias * 100
+            ).round(2)
+            
+            # Ordenar por cantidad de solicitudes innecesarias (mayor a menor)
+            tabla_innecesarias = tabla_innecesarias.sort_values(
+                by="Solicitudes innecesarias", ascending=False
+            )
+            
+            # Función para aplicar colores a solicitudes innecesarias
+            def color_innecesarias(val):
+                if pd.isna(val):
+                    return ''
+                if val >= 5:
+                    return 'background-color: #ffcccc; color: black'  # Rojo claro con texto negro
+                elif val >= 3:
+                    return 'background-color: #ffe6cc; color: black'  # Naranja claro con texto negro
+                elif val >= 1:
+                    return 'background-color: #ffffcc; color: black'  # Amarillo claro con texto negro
+                else:
+                    return 'background-color: #ccffcc; color: black'  # Verde claro con texto negro
+
+            def color_porcentaje_innecesarias(val):
+                if pd.isna(val):
+                    return ''
+                if val >= 30:
+                    return 'background-color: #ffcccc; color: black'  # Rojo claro con texto negro
+                elif val >= 20:
+                    return 'background-color: #ffe6cc; color: black'  # Naranja claro con texto negro
+                elif val >= 10:
+                    return 'background-color: #ffffcc; color: black'  # Amarillo claro con texto negro
+                else:
+                    return 'background-color: #ccffcc; color: black'  # Verde claro con texto negro
+
+            # Aplicar estilo
+            styled_innecesarias = tabla_innecesarias.style.format({
+                "% del total": "{:.2f}%",
+                "Solicitudes innecesarias": "{:.0f}"
+            }).applymap(color_innecesarias, subset=["Solicitudes innecesarias"]).applymap(color_porcentaje_innecesarias, subset=["% del total"])
+            
+            st.dataframe(styled_innecesarias, use_container_width=True)
+            
+            # Mostrar detalle de los registros innecesarios
+            st.subheader("📋 Detalle de solicitudes innecesarias")
+            
+            # Seleccionar columnas relevantes para mostrar
+            columnas_detalle = ["FECHA", "CLIENTE", "SUC", "EJECUTIVO", "VENTA", "LC_ACTUAL", "LC_FINAL", "OBSERVACION"]
+            detalle_innecesarias = solicitudes_innecesarias[columnas_detalle].copy()
+            detalle_innecesarias["FECHA"] = detalle_innecesarias["FECHA"].dt.strftime("%Y-%m-%d")
+            
+            # Renombrar columnas para mejor presentación
+            detalle_innecesarias = detalle_innecesarias.rename(columns={
+                "SUC": "Sucursal"
+            })
+            
+            st.dataframe(detalle_innecesarias.reset_index(drop=True), use_container_width=True)
+        else:
+            st.info("✅ No hay solicitudes innecesarias registradas en el mes actual.")
 
     # Tabla de clientes sin compra con filtros
     st.subheader("📋 Clientes sin compra")
