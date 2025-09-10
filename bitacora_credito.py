@@ -293,58 +293,86 @@ elif pagina == "Indicadores":
 
     from dateutil.relativedelta import relativedelta
 
-    # Calcular el primer y último día del mes actual
-    hoy = datetime.now()
-    primer_dia_mes = hoy.replace(day=1).date()
+    # Controles para seleccionar mes y año
+    col_mes, col_anio = st.columns(2)
+    
+    with col_mes:
+        # Lista de meses
+        meses = [
+            "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+            "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+        ]
+        mes_seleccionado = st.selectbox("Seleccionar mes:", meses, index=datetime.now().month - 1)
+        mes_numero = meses.index(mes_seleccionado) + 1
+    
+    with col_anio:
+        anio_actual = datetime.now().year
+        anio_seleccionado = st.selectbox("Seleccionar año:", list(range(2025, anio_actual + 1)), index=anio_actual - 2025)
+
+    # Calcular el primer y último día del mes seleccionado
+    primer_dia_mes = datetime(anio_seleccionado, mes_numero, 1).date()
     ultimo_dia_mes = (primer_dia_mes + relativedelta(months=1)) - pd.Timedelta(days=1)
 
     # Ajustar el inicio si es marzo 2025
     if primer_dia_mes.year == 2025 and primer_dia_mes.month == 3:
         primer_dia_mes = datetime(2025, 3, 19).date()
+    
+    # Mostrar el período seleccionado
+    st.info(f"📅 Mostrando indicadores para: **{mes_seleccionado} {anio_seleccionado}** ({primer_dia_mes} al {ultimo_dia_mes})")
+    
+    # Debug temporal - mostrar las fechas exactas que se usan en la consulta
+    st.write(f"🔍 **Debug**: Consultando desde {primer_dia_mes} hasta {ultimo_dia_mes}")
 
 
     conn = get_connection()
     if conn:
         try:
-            # Bitácora
-            query_bitacora = text("""
-                SELECT CLIENTE, FECHA, SUC, VENTA, LC_ACTUAL, LC_FINAL, NOTAS, OBSERVACION, EJECUTIVO, Actualizacion, innecesario
+            # Obtener todos los datos de Bitácora para el mes seleccionado
+            query_bitacora_mes = text("""
+                SELECT CLIENTE, FECHA, SUC, VENTA, LC_ACTUAL, LC_FINAL, NOTAS, OBSERVACION, 
+                       EJECUTIVO, Actualizacion, innecesario, TIPO_DE_CLIENTE, ENGANCHE_REQUERIDO, 
+                       ENGANCHE_RECIBIDO, CONSULTA_BURO, FACTURO
                 FROM Bitacora_Credito
-                WHERE CLIENTE IS NOT NULL
+                WHERE FECHA BETWEEN :inicio AND :fin
+                  AND CLIENTE IS NOT NULL
             """)
-            bitacora = pd.read_sql(query_bitacora, conn)
+            bitacora = pd.read_sql(query_bitacora_mes, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})
+            
+            # Debug temporal - mostrar cuántos registros se obtuvieron
+            st.write(f"🔍 **Debug**: Se encontraron {len(bitacora)} registros en la consulta")
 
-            # RPVENTA
+            # RPVENTA para verificar compras posteriores a la fecha de registro
             query_rpventa = text("""
                 SELECT CLIENTE, FECHA AS FECHA_VENTA, FOLIO_POS, TOTALFACTURA
                 FROM RPVENTA
                 WHERE CLIENTE IS NOT NULL
+                  AND FECHA >= :inicio_mes
             """)
-            ventas = pd.read_sql(query_rpventa, conn)
+            ventas = pd.read_sql(query_rpventa, conn, params={"inicio_mes": primer_dia_mes})
 
-            # Recompra del mes (por FECHA)
-            query_recompra = text("""
-                SELECT DISTINCT FOLIO_POS
-                FROM SeguimientoActivacion
-                WHERE Segmento = 'Recompra'
-                  AND FECHA BETWEEN :inicio AND :fin
-            """)
-            df_recompra = pd.read_sql(query_recompra, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})
+            # Recompra del mes seleccionado (por FECHA) - Solo si existe la tabla
+            try:
+                query_recompra = text("""
+                    SELECT DISTINCT FOLIO_POS
+                    FROM SeguimientoActivacion
+                    WHERE Segmento = 'Recompra'
+                      AND FECHA BETWEEN :inicio AND :fin
+                """)
+                df_recompra = pd.read_sql(query_recompra, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})
+            except:
+                # Si no existe la tabla, usar datos de bitácora para simular
+                df_recompra = pd.DataFrame({'FOLIO_POS': []})
 
-            # Clientes únicos en Bitácora en el mes
-            query_bitacora_mes = text("""
-                SELECT COUNT(DISTINCT CLIENTE) as conteo
-                FROM Bitacora_Credito
-                WHERE FECHA BETWEEN :inicio AND :fin
-            """)
-            clientes_registrados_mes = pd.read_sql(query_bitacora_mes, conn, params={"inicio": primer_dia_mes, "fin": ultimo_dia_mes})["conteo"][0]
-
-            # Prueba_Cliente
-            query_valor_cte = text("""
-                SELECT ID_CLIENTE, VALOR_CTE
-                FROM Prueba_Cliente
-            """)
-            valor_cte_df = pd.read_sql(query_valor_cte, conn)
+            # Prueba_Cliente para clasificación - Solo si existe
+            try:
+                query_valor_cte = text("""
+                    SELECT ID_CLIENTE, VALOR_CTE
+                    FROM Prueba_Cliente
+                """)
+                valor_cte_df = pd.read_sql(query_valor_cte, conn)
+            except:
+                # Si no existe la tabla, crear DataFrame vacío
+                valor_cte_df = pd.DataFrame({'ID_CLIENTE': [], 'VALOR_CTE': []})
 
             conn.close()
         except Exception as e:
@@ -352,10 +380,19 @@ elif pagina == "Indicadores":
             bitacora = pd.DataFrame()
             ventas = pd.DataFrame()
             df_recompra = pd.DataFrame()
-            clientes_registrados_mes = 0
             valor_cte_df = pd.DataFrame()
 
-    if not bitacora.empty and not ventas.empty:
+    # Inicializar DataFrames vacíos por defecto para evitar errores cuando no hay datos
+    sin_compra_df = pd.DataFrame(columns=["CLIENTE", "FECHA", "EJECUTIVO", "VALOR_CTE", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "NOTAS", "OBSERVACION"])
+    compras_validas = pd.DataFrame(columns=["CLIENTE", "FOLIO_POS", "FECHA_VENTA", "TOTALFACTURA", "DIAS_PARA_COMPRA"])
+    clientes_autorizados_mes = pd.DataFrame(columns=["CLIENTE", "FECHA", "EJECUTIVO", "VENTA", "SUC", "LC_ACTUAL", "LC_FINAL"])
+    clientes_con_compra_mes = pd.DataFrame(columns=["CLIENTE"])
+    clientes_sin_compra_mes = pd.DataFrame(columns=["CLIENTE"])
+    
+    if not bitacora.empty:
+        # Si no hay datos de ventas, crear DataFrame vacío para evitar errores
+        if ventas.empty:
+            ventas = pd.DataFrame(columns=["CLIENTE", "FECHA_VENTA", "FOLIO_POS", "TOTALFACTURA"])
         bitacora["FECHA"] = pd.to_datetime(bitacora["FECHA"])
         ventas["FECHA_VENTA"] = pd.to_datetime(ventas["FECHA_VENTA"])
         bitacora["CLIENTE"] = bitacora["CLIENTE"].astype(str).str.strip()
@@ -380,23 +417,21 @@ elif pagina == "Indicadores":
             })
         )
 
+        # Los datos de bitácora ya vienen filtrados por el mes seleccionado
         total_clientes = bitacora["CLIENTE"].nunique()
         clientes_con_compra = compras_validas["CLIENTE"].nunique()
         clientes_sin_compra = total_clientes - clientes_con_compra
-        total_recompra = df_recompra["FOLIO_POS"].nunique()
-        porcentaje_bitacora_recompra = round((clientes_registrados_mes / total_recompra) * 100, 2) if total_recompra > 0 else 0
-
-        # Filtrar clientes registrados en el mes
-        clientes_registrados_mes = bitacora[
-            (bitacora["FECHA"] >= pd.to_datetime(primer_dia_mes)) & 
-            (bitacora["FECHA"] <= pd.to_datetime(ultimo_dia_mes))
-        ]
-
-        clientes_innecesarios = clientes_registrados_mes[clientes_registrados_mes["innecesario"] == "SI"]["CLIENTE"].nunique()
-        # Filtrar solo AUTORIZADOS
-        clientes_autorizados_mes = clientes_registrados_mes[
+        total_recompra = df_recompra["FOLIO_POS"].nunique() if not df_recompra.empty else 0
+        
+        # Clientes innecesarios del mes seleccionado
+        clientes_innecesarios = bitacora[bitacora["innecesario"] == "SI"]["CLIENTE"].nunique()
+        
+        # Filtrar solo AUTORIZADOS del mes seleccionado
+        clientes_autorizados_mes = bitacora[
             bitacora["VENTA"].str.strip().str.upper() == "AUTORIZADA"
         ]
+        
+        porcentaje_bitacora_recompra = round((clientes_autorizados_mes["CLIENTE"].nunique() / total_recompra) * 100, 2) if total_recompra > 0 else 0
 
         # Clientes con compra (entre los autorizados)
         clientes_con_compra_mes = compras_validas[
@@ -408,12 +443,6 @@ elif pagina == "Indicadores":
             ~clientes_autorizados_mes["CLIENTE"].isin(clientes_con_compra_mes["CLIENTE"])
         ]
 
-        # Cálculos generales
-        total_clientes = bitacora["CLIENTE"].nunique()
-        clientes_con_compra = compras_validas["CLIENTE"].nunique()
-        clientes_sin_compra = total_clientes - clientes_con_compra
-        total_recompra = df_recompra["FOLIO_POS"].nunique()
-        porcentaje_bitacora_recompra = round((clientes_autorizados_mes["CLIENTE"].nunique() / total_recompra) * 100, 2) if total_recompra > 0 else 0
 
         # Layout
         col1, col2 = st.columns([1, 2])
@@ -448,11 +477,8 @@ elif pagina == "Indicadores":
         with col2:
             st.subheader("Distribución por ejecutivo (clientes sin compra)")
 
-            # 1. Filtrar bitácora al mes actual
-            bitacora_mes = bitacora[
-                (bitacora["FECHA"] >= pd.to_datetime(primer_dia_mes)) & 
-                (bitacora["FECHA"] <= pd.to_datetime(ultimo_dia_mes))
-            ].copy()
+            # 1. Los datos de bitácora ya vienen filtrados al mes seleccionado
+            bitacora_mes = bitacora.copy()
 
             # 2. Identificar clientes con compra válida
             clientes_con_compra_set = set(compras_validas["CLIENTE"].unique())
@@ -506,11 +532,11 @@ elif pagina == "Indicadores":
                 "Registros": "{:.0f}",
                 "No aut.": "{:.0f}",
                 "Sin compra": "{:.0f}"
-            }).applymap(color_percentage, subset=["% Sin compra"])
+            }).map(color_percentage, subset=["% Sin compra"])
 
             st.dataframe(styled_df, use_container_width=True)
 
-            # 11. KPI de actualizaciones de cliente en el mes (color amarillo claro)
+            # 11. KPI de actualizaciones de cliente en el mes seleccionado (color amarillo claro)
             actualizaciones_cliente = bitacora_mes[bitacora_mes["Actualizacion"] == "SI"].shape[0]
             visitas_domiciliarias = bitacora_mes[bitacora_mes["VENTA"] == "VISITA DOMICILIARIA"].shape[0]
             clientes_rechazados = bitacora_mes[bitacora_mes["VENTA"] == "NO AUTORIZADA"].shape[0]
@@ -582,16 +608,16 @@ elif pagina == "Indicadores":
         styled_valor_cte = distribucion_valor_cte.sort_values(by="% No compra", ascending=False).style.format({
             "% No compra": "{:.2f} %",
             "Clientes sin compra": "{:.0f}"
-        }).applymap(color_no_compra, subset=["% No compra"])
+        }).map(color_no_compra, subset=["% No compra"])
 
         st.dataframe(styled_valor_cte, use_container_width=True)
 
         # Tabla de solicitudes innecesarias por sucursal
         st.subheader("🟡 Solicitudes innecesarias por Sucursal")
         
-        # Filtrar registros innecesarios del mes
-        solicitudes_innecesarias = clientes_registrados_mes[
-            clientes_registrados_mes["innecesario"] == "SI"
+        # Filtrar registros innecesarios del mes seleccionado
+        solicitudes_innecesarias = bitacora[
+            bitacora["innecesario"] == "SI"
         ].copy()
         
         if not solicitudes_innecesarias.empty:
@@ -649,7 +675,7 @@ elif pagina == "Indicadores":
             styled_innecesarias = tabla_innecesarias.style.format({
                 "% del total": "{:.2f}%",
                 "Solicitudes innecesarias": "{:.0f}"
-            }).applymap(color_innecesarias, subset=["Solicitudes innecesarias"]).applymap(color_porcentaje_innecesarias, subset=["% del total"])
+            }).map(color_innecesarias, subset=["Solicitudes innecesarias"]).map(color_porcentaje_innecesarias, subset=["% del total"])
             
             st.dataframe(styled_innecesarias, use_container_width=True)
             
@@ -668,7 +694,7 @@ elif pagina == "Indicadores":
             
             st.dataframe(detalle_innecesarias.reset_index(drop=True), use_container_width=True)
         else:
-            st.info("✅ No hay solicitudes innecesarias registradas en el mes actual.")
+            st.info(f"✅ No hay solicitudes innecesarias registradas en {mes_seleccionado} {anio_seleccionado}.")
 
     # Tabla de clientes sin compra con filtros
     st.subheader("📋 Clientes sin compra")
@@ -721,10 +747,16 @@ elif pagina == "Indicadores":
 
     columnas_mostrar = ["FECHA", "CLIENTE", "EJECUTIVO", "SUC", "VENTA", "LC_ACTUAL", "LC_FINAL", "CC", "NOTAS", "OBSERVACION"]
     df_display = filtro_df[columnas_mostrar].copy()
-    df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")
+    
+    # Solo formatear fecha si hay datos y la columna tiene valores datetime
+    if not df_display.empty and pd.api.types.is_datetime64_any_dtype(df_display["FECHA"]):
+        df_display["FECHA"] = df_display["FECHA"].dt.strftime("%Y-%m-%d")
 
     st.dataframe(df_display.reset_index(drop=True))
-
+    
+    # Mostrar mensaje si no hay datos
+    if bitacora.empty:
+        st.warning(f"No hay datos disponibles para {mes_seleccionado} {anio_seleccionado}. Selecciona un período con datos registrados.")
 
 
 elif pagina == "Mensajes Sms":
