@@ -51,7 +51,7 @@ if pagina == "Bitácora de Actividades":
             fecha = st.date_input("Fecha", fecha_actual)
             ticket = st.text_input("Ticket")
             moto = st.selectbox("Moto", ["SI", "NO"])
-            sucursal = st.selectbox("Sucursal", list(range(1, 101)))
+            sucursal = st.selectbox("Sucursal", list(range(1, 102)))
             
         with col2:
             venta = st.selectbox("Venta", ["AUTORIZADA", "NO AUTORIZADA", "AUTORIZADA PARCIAL","VISITA DOMICILIARIA","ACTUALIZACION"])
