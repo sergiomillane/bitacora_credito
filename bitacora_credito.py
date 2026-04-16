@@ -16,7 +16,7 @@ fecha_actual = datetime.now(culiacan_tz).date()
 
 
 # Configurar la conexión a SQL Server usando pymssql
-DATABASE_URL = "mssql+pymssql://credito:Cr3d$.23xme@52.167.231.145:51433/CreditoyCobranza"
+DATABASE_URL = "mssql+pymssql://credito:Cr3d$.23xme$@52.167.231.145:51433/CreditoyCobranza"
 
 # Crear el engine de SQLAlchemy
 engine = create_engine(DATABASE_URL)
