@@ -54,7 +54,7 @@ if pagina == "Bitácora de Actividades":
             sucursal = st.selectbox("Sucursal", list(range(1, 102)))
             
         with col2:
-            venta = st.selectbox("Venta", ["AUTORIZADA", "NO AUTORIZADA", "AUTORIZADA PARCIAL","VISITA DOMICILIARIA","ACTUALIZACION"])
+            venta = st.selectbox("Venta", ["AUTORIZADA", "NO AUTORIZADA", "AUTORIZADA PARCIAL","VISITA DOMICILIARIA","ACTUALIZACION","Nuevo"])
             cliente = st.text_input("ID_Cliente")
             lc_actual = st.number_input("LC Actual", min_value=0.0, format="%.2f")
             lc_final = st.number_input("LC Final", min_value=0.0, format="%.2f")
